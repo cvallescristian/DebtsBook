@@ -11,6 +11,9 @@ struct MainTabView: View {
             Tab("Expenses", systemImage: "dollarsign.circle") {
                 ExpensesView()
             }
+            Tab("Profile", systemImage: "person.crop.circle") {
+                ProfileView()
+            }
         }
     }
 }
