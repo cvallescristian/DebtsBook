@@ -5,6 +5,7 @@ struct FriendDetailView: View {
 
     let friend: Friend
     @State private var showingFriendEdit: Bool = false
+    @State private var editingExpense: Expense?
     @Environment(\.dismiss) private var dismiss
     @Query private var expenses: [Expense]
 
@@ -40,8 +41,13 @@ struct FriendDetailView: View {
 
             Section("Expenses") {
                 ForEach(friendsExpenses) { expense in
-                    ExpenseRow(expense: expense)
-                        .settleSwipeAction(for: expense)
+                    Button {
+                        editingExpense = expense
+                    } label: {
+                        ExpenseRow(expense: expense)
+                    }
+                    .tint(.primary)
+                    .settleSwipeAction(for: expense)
                 }
             }
         }
@@ -55,6 +61,9 @@ struct FriendDetailView: View {
         }
         .sheet(isPresented: $showingFriendEdit){
             FriendEditView(friend: friend, onDelete: { dismiss() })
+        }
+        .sheet(item: $editingExpense) { expense in
+            ExpenseEditView(expense: expense)
         }
     }
 }

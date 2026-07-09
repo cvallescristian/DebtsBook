@@ -3,6 +3,7 @@ import SwiftData
 
 struct ExpensesView: View {
     @State private var showingExpenseNew: Bool = false
+    @State private var editingExpense: Expense?
     @Query(sort: \Expense.createdAt, order: .reverse) private var expenses: [Expense]
 
     private var balance: Decimal {
@@ -29,13 +30,16 @@ struct ExpensesView: View {
                 }
                 .listRowBackground(Color.clear)
 
-                ForEach(expenses) { expense in
-                    NavigationLink {
-//                        ExpensesView()
-                    } label: {
-                        ExpenseRow(expense: expense)
+                Section {
+                    ForEach(expenses) { expense in
+                        Button {
+                            editingExpense = expense
+                        } label: {
+                            ExpenseRow(expense: expense)
+                        }
+                        .tint(.primary)
+                        .settleSwipeAction(for: expense)
                     }
-                    .settleSwipeAction(for: expense)
                 }
             } .overlay {
                 if expenses.isEmpty {
@@ -52,6 +56,9 @@ struct ExpensesView: View {
             }
             .sheet(isPresented: $showingExpenseNew){
                 ExpenseNewView()
+            }
+            .sheet(item: $editingExpense) { expense in
+                ExpenseEditView(expense: expense)
             }
         }
         
