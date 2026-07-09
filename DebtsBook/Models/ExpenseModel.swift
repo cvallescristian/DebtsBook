@@ -12,7 +12,7 @@ class Expense {
 
     var friend: Friend?
     var paidByMe: Bool
-    var splitType: SplitType
+    var splitType: SplitType = SplitType.equally
     var comment: String?
 
     init(title: String, amount: Decimal, friend: Friend, paidByMe: Bool, splitType: SplitType = .equally, date: Date = Date(), comment: String? = nil) {
