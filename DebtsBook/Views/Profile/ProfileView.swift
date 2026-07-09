@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
 
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
+    @AppStorage("requireFaceID") private var requireFaceID: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -15,6 +16,9 @@ struct ProfileView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                }
+                Section("Security") {
+                    Toggle("Require Face ID", isOn: $requireFaceID)
                 }
             }
             .navigationTitle("Profile")
