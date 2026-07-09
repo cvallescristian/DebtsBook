@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct DebtsBookApp: App {
@@ -6,5 +7,6 @@ struct DebtsBookApp: App {
         WindowGroup {
             FriendView()
         }
+        .modelContainer(for: Friend.self)
     }
 }

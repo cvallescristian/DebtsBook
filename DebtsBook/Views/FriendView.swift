@@ -4,19 +4,22 @@ import SwiftData
 struct FriendView: View {
     
     @State private var showingFriendNew: Bool = false
-    
+    @Query private var friends: [Friend]
+
     var body: some View {
         NavigationStack {
             List {
-                NavigationLink {
-                    FriendDetailView()
-                } label: {
-                    HStack {
-                        Text("Cristian")
-                        Spacer()
-                        Text("$10.00 NZD")
-                            .foregroundColor(.green)
+                ForEach(friends) { friend in
+                    NavigationLink {
+                        FriendDetailView()
+                    } label: {
+                        Text(friend.name)
                     }
+                }
+            }
+            .overlay {
+                if friends.isEmpty {
+                    ContentUnavailableView("No Friends", systemImage: "person.2", description: Text("Tap + to add your first friend."))
                 }
             }
             .navigationTitle("Friends")
@@ -37,4 +40,5 @@ struct FriendView: View {
 
 #Preview {
     FriendView()
+        .modelContainer(for: Friend.self, inMemory: true)
 }
