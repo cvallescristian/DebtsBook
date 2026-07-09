@@ -101,6 +101,16 @@ struct FriendDetailView: View {
                 }
             }
         }
+        .overlay {
+            switch selectedTab {
+            case .expenses where friendsExpenses.isEmpty:
+                ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses with \(friend.name) will show up here."))
+            case .activity where friendsActivities.isEmpty:
+                ContentUnavailableView("No Activity", systemImage: "clock.arrow.circlepath", description: Text("Changes you make will show up here."))
+            default:
+                EmptyView()
+            }
+        }
         .confirmationDialog(
             "Settle up with \(friend.name)?",
             isPresented: $showingSettleUpConfirmation,
