@@ -6,6 +6,7 @@ struct FriendDetailView: View {
     let friend: Friend
     @State private var showingFriendEdit: Bool = false
     @State private var editingExpense: Expense?
+    @State private var showingSettleUpConfirmation: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Query private var expenses: [Expense]
 
@@ -17,26 +18,41 @@ struct FriendDetailView: View {
         friendsExpenses.netBalance
     }
 
+    private var hasUnsettledExpenses: Bool {
+        friendsExpenses.contains { !$0.isSettled }
+    }
+
     var body: some View {
         List {
-            HStack {
-                if balance > 0 {
-                    Text("Overall, you are owed")
-                        .font(.title2)
-                    Text(balance, format: .currency(code: "NZD"))
-                        .foregroundColor(.green)
-                        .font(Font.title2.bold())
-                } else if balance < 0 {
-                    Text("Overall, you owe")
-                        .font(.title2)
-                    Text(-balance, format: .currency(code: "NZD"))
-                        .foregroundColor(.red)
-                        .font(Font.title2.bold())
-                } else {
-                    Label("Settled up", systemImage: "hand.thumbsup.fill")
-                        .font(.title2)
+            VStack(spacing: 12) {
+                HStack {
+                    if balance > 0 {
+                        Text("Overall, you are owed")
+                            .font(.title2)
+                        Text(balance, format: .currency(code: "NZD"))
+                            .foregroundColor(.green)
+                            .font(Font.title2.bold())
+                    } else if balance < 0 {
+                        Text("Overall, you owe")
+                            .font(.title2)
+                        Text(-balance, format: .currency(code: "NZD"))
+                            .foregroundColor(.red)
+                            .font(Font.title2.bold())
+                    } else {
+                        Label("Settled up", systemImage: "hand.thumbsup.fill")
+                            .font(.title2)
+                    }
+                }
+
+                if hasUnsettledExpenses {
+                    Button("Settle Up") {
+                        showingSettleUpConfirmation = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
                 }
             }
+            .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
 
             Section("Expenses") {
@@ -51,6 +67,17 @@ struct FriendDetailView: View {
                 }
             }
         }
+        .confirmationDialog(
+            "Settle up with \(friend.name)?",
+            isPresented: $showingSettleUpConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Settle Up") {
+                settleUp()
+            }
+        } message: {
+            Text("This marks all of \(friend.name)'s expenses as paid.")
+        }
         .navigationTitle(friend.name)
         .toolbar {
             Button {
@@ -64,6 +91,12 @@ struct FriendDetailView: View {
         }
         .sheet(item: $editingExpense) { expense in
             ExpenseEditView(expense: expense)
+        }
+    }
+
+    private func settleUp() {
+        for expense in friendsExpenses where !expense.isSettled {
+            expense.isSettled = true
         }
     }
 }
