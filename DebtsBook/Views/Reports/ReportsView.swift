@@ -26,6 +26,20 @@ struct ReportsView: View {
         return budgetForSelectedRange.amount - total
     }
 
+    private var progress: Double {
+        guard let budgetForSelectedRange, budgetForSelectedRange.amount > 0 else { return 0 }
+        let fraction = total / budgetForSelectedRange.amount
+        return min(Double(truncating: fraction as NSDecimalNumber), 1.0)
+    }
+
+    private var progressColor: Color {
+        switch progress {
+        case ..<0.8: return .green
+        case ..<1.0: return .orange
+        default: return .red
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -39,40 +53,56 @@ struct ReportsView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
-                VStack(spacing: 4) {
-                    Text("Total Spent This \(selectedRange.rawValue)")
-                        .foregroundStyle(.secondary)
-                    Text(total, format: .currency(code: "NZD"))
-                        .font(.largeTitle.bold())
-                }
-                .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
-                Button {
-                    showingBudgetEdit = true
-                } label: {
-                    if let budgetForSelectedRange, let remaining {
-                        VStack(spacing: 4) {
-                            Text(remaining >= 0 ? "Remaining Budget" : "Over Budget")
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Total Spent This \(selectedRange.rawValue)")
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            Text(abs(remaining), format: .currency(code: "NZD"))
+                            Text(total, format: .currency(code: "NZD"))
                                 .font(.title.bold())
-                                .foregroundColor(remaining >= 0 ? .green : .red)
-                            Text("of \(budgetForSelectedRange.amount, format: .currency(code: "NZD")) budget")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity)
+                        Spacer()
+                        Button {
+                            showingBudgetEdit = true
+                        } label: {
+                            Image(systemName: budgetForSelectedRange == nil ? "target" : "pencil")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.circle)
+                        .controlSize(.regular)
+                    }
+
+                    if let budgetForSelectedRange, let remaining {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ProgressView(value: progress)
+                                .tint(progressColor)
+
+                            HStack {
+                                Text(remaining >= 0 ? "\(remaining, format: .currency(code: "NZD")) left" : "\(abs(remaining), format: .currency(code: "NZD")) over budget")
+                                    .foregroundColor(progressColor)
+                                    .fontWeight(.medium)
+                                Spacer()
+                                Text("of \(budgetForSelectedRange.amount, format: .currency(code: "NZD"))")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.caption)
+                        }
                     } else {
-                        Label("Set a \(selectedRange.rawValue)ly Budget", systemImage: "target")
-                            .frame(maxWidth: .infinity)
+                        Button {
+                            showingBudgetEdit = true
+                        } label: {
+                            Text("Set a \(selectedRange.rawValue)ly Budget")
+                        }
+                        .font(.caption)
                     }
                 }
-                .buttonStyle(.bordered)
-                .tint(.primary)
+                .padding()
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
 
                 if !expensesInRange.isEmpty {
                     Section("Expenses") {

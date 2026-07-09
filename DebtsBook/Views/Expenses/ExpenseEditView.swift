@@ -21,6 +21,7 @@ struct ExpenseEditView: View {
     @State private var splitType: SplitType
     @State private var comment: String
     @State private var showingDeleteConfirmation: Bool = false
+    @FocusState private var isInputFocused: Bool
 
     init(expense: Expense) {
         self.expense = expense
@@ -52,8 +53,10 @@ struct ExpenseEditView: View {
             Form {
                 Section("What?") {
                     TextField("Title (e.g. Groceries)", text: $title)
+                        .focused($isInputFocused)
                     TextField("Amount", value: $amount, format: .currency(code: "NZD"))
                         .keyboardType(.decimalPad)
+                        .focused($isInputFocused)
                 }
                 Section("When?") {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
@@ -90,6 +93,7 @@ struct ExpenseEditView: View {
                 Section("Comment") {
                     TextField("Optional comment", text: $comment, axis: .vertical)
                         .lineLimit(2, reservesSpace: true)
+                        .focused($isInputFocused)
                 }
                 if !budgetWarnings.isEmpty {
                     Section {
@@ -105,6 +109,8 @@ struct ExpenseEditView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete \(expense.title)?",
@@ -136,6 +142,12 @@ struct ExpenseEditView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
+                    }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isInputFocused = false
                     }
                 }
             }

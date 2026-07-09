@@ -11,6 +11,7 @@ struct BudgetEditView: View {
 
     @State private var amount: Decimal?
     @State private var showingDeleteConfirmation: Bool = false
+    @FocusState private var isInputFocused: Bool
 
     init(period: BudgetPeriod, existingBudget: Budget?) {
         self.period = period
@@ -27,6 +28,7 @@ struct BudgetEditView: View {
             Form {
                 TextField("Amount", value: $amount, format: .currency(code: "NZD"))
                     .keyboardType(.decimalPad)
+                    .focused($isInputFocused)
 
                 if existingBudget != nil {
                     Section {
@@ -36,6 +38,8 @@ struct BudgetEditView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete this budget?",
@@ -62,6 +66,12 @@ struct BudgetEditView: View {
                         save()
                     }
                     .disabled(isSaveDisabled)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isInputFocused = false
+                    }
                 }
             }
         }

@@ -10,6 +10,7 @@ struct FriendEditView: View {
     @State private var showingDeleteConfirmation: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @FocusState private var isInputFocused: Bool
 
     init(friend: Friend, onDelete: @escaping () -> Void = {}) {
         self.friend = friend
@@ -21,6 +22,7 @@ struct FriendEditView: View {
         NavigationStack {
             Form {
                 TextField("Name", text: $name)
+                    .focused($isInputFocused)
 
                 Section {
                     Button("Delete Friend", role: .destructive) {
@@ -28,6 +30,8 @@ struct FriendEditView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete \(friend.name)?",
@@ -56,6 +60,12 @@ struct FriendEditView: View {
                     }
                     .disabled(name.isEmpty)
                     .tint(.blue)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isInputFocused = false
+                    }
                 }
             }
         }

@@ -19,6 +19,7 @@ struct ExpenseNewView: View {
     @State private var paidByMe: Bool = true
     @State private var splitType: SplitType = .equally
     @State private var comment: String = ""
+    @FocusState private var isInputFocused: Bool
 
     init(friend: Friend? = nil) {
         _friendID = State(initialValue: friend?.persistentModelID)
@@ -42,8 +43,10 @@ struct ExpenseNewView: View {
             Form {
                 Section("What?") {
                     TextField("Title (e.g. Groceries)", text: $title)
+                        .focused($isInputFocused)
                     TextField("Amount", value: $amount, format: .currency(code: "NZD"))
                         .keyboardType(.decimalPad)
+                        .focused($isInputFocused)
                 }
                 Section("When?") {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
@@ -80,6 +83,7 @@ struct ExpenseNewView: View {
                 Section("Comment") {
                     TextField("Optional comment", text: $comment, axis: .vertical)
                         .lineLimit(2, reservesSpace: true)
+                        .focused($isInputFocused)
                 }
                 if !budgetWarnings.isEmpty {
                     Section {
@@ -90,6 +94,8 @@ struct ExpenseNewView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .safeAreaInset(edge: .bottom) {
                 Button("Create Expense") {
                     save()
@@ -110,10 +116,16 @@ struct ExpenseNewView: View {
                         dismiss()
                     }
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isInputFocused = false
+                    }
+                }
             }
         }
     }
-    
+
     private func save() {
         guard let amount else { return }
         guard isPersonal || selectedFriend != nil else { return }
