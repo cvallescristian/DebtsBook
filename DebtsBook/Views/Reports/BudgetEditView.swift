@@ -10,6 +10,7 @@ struct BudgetEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var amount: Decimal?
+    @State private var showingDeleteConfirmation: Bool = false
 
     init(period: BudgetPeriod, existingBudget: Budget?) {
         self.period = period
@@ -26,7 +27,28 @@ struct BudgetEditView: View {
             Form {
                 TextField("Amount", value: $amount, format: .currency(code: "NZD"))
                     .keyboardType(.decimalPad)
+
+                if existingBudget != nil {
+                    Section {
+                        Button("Delete Budget", role: .destructive) {
+                            showingDeleteConfirmation = true
+                        }
+                    }
+                }
             }
+            .confirmationModal(
+                isPresented: $showingDeleteConfirmation,
+                title: "Delete this budget?",
+                message: "This action cannot be undone.",
+                confirmLabel: "Delete",
+                successMessage: "Budget deleted",
+                onConfirm: {
+                    delete()
+                },
+                onDismiss: {
+                    dismiss()
+                }
+            )
             .navigationTitle("\(period.rawValue)ly Budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -53,6 +75,11 @@ struct BudgetEditView: View {
             modelContext.insert(Budget(amount: amount, period: period))
         }
         dismiss()
+    }
+
+    private func delete() {
+        guard let existingBudget else { return }
+        modelContext.delete(existingBudget)
     }
 }
 

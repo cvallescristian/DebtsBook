@@ -118,6 +118,7 @@ struct FriendDetailView: View {
             title: "Settle up with \(friend.name)?",
             message: "This marks all of \(friend.name)'s expenses as paid.",
             confirmLabel: "Settle Up",
+            successMessage: "Settled up with \(friend.name)",
             isDestructive: false
         ) {
             settleUp()

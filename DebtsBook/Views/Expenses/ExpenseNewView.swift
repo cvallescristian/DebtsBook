@@ -8,7 +8,9 @@ struct ExpenseNewView: View {
     @Environment(\.dismiss) private var dismiss
     
     @Query(sort: \Friend.name) private var friends: [Friend]
-    
+    @Query private var expenses: [Expense]
+    @Query private var budgets: [Budget]
+
     @State private var title: String = ""
     @State private var amount: Decimal?
     @State private var date: Date = Date()
@@ -28,6 +30,11 @@ struct ExpenseNewView: View {
 
     private var isSaveDisabled: Bool {
         title.isEmpty || amount == nil || (!isPersonal && friendID == nil)
+    }
+
+    private var budgetWarnings: [String] {
+        guard let amount, isPersonal || paidByMe else { return [] }
+        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date)
     }
 
     var body: some View {
@@ -73,6 +80,14 @@ struct ExpenseNewView: View {
                 Section("Comment") {
                     TextField("Optional comment", text: $comment, axis: .vertical)
                         .lineLimit(2, reservesSpace: true)
+                }
+                if !budgetWarnings.isEmpty {
+                    Section {
+                        ForEach(budgetWarnings, id: \.self) { warning in
+                            Label(warning, systemImage: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                        }
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom) {

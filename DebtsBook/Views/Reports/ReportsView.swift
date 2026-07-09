@@ -9,7 +9,7 @@ struct ReportsView: View {
     @Query private var budgets: [Budget]
 
     private var expensesInRange: [Expense] {
-        let interval = selectedRange.dateInterval
+        let interval = selectedRange.dateInterval()
         return expenses.filter { $0.paidByMe && interval.contains($0.date) }
     }
 

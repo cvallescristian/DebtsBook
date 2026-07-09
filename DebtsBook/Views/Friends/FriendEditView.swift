@@ -32,10 +32,16 @@ struct FriendEditView: View {
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete \(friend.name)?",
                 message: "This action cannot be undone.",
-                confirmLabel: "Delete"
-            ) {
-                delete()
-            }
+                confirmLabel: "Delete",
+                successMessage: "\(friend.name) deleted",
+                onConfirm: {
+                    delete()
+                },
+                onDismiss: {
+                    dismiss()
+                    onDelete()
+                }
+            )
             .navigationTitle(Text("Edit Friend"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -62,8 +68,6 @@ struct FriendEditView: View {
 
     private func delete() {
         modelContext.delete(friend)
-        dismiss()
-        onDelete()
     }
 }
 

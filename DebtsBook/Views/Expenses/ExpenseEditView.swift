@@ -9,6 +9,8 @@ struct ExpenseEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \Friend.name) private var friends: [Friend]
+    @Query private var expenses: [Expense]
+    @Query private var budgets: [Budget]
 
     @State private var title: String
     @State private var amount: Decimal?
@@ -38,6 +40,11 @@ struct ExpenseEditView: View {
 
     private var isSaveDisabled: Bool {
         title.isEmpty || amount == nil || (!isPersonal && friendID == nil)
+    }
+
+    private var budgetWarnings: [String] {
+        guard let amount, isPersonal || paidByMe else { return [] }
+        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, excluding: expense.persistentModelID)
     }
 
     var body: some View {
@@ -84,6 +91,14 @@ struct ExpenseEditView: View {
                     TextField("Optional comment", text: $comment, axis: .vertical)
                         .lineLimit(2, reservesSpace: true)
                 }
+                if !budgetWarnings.isEmpty {
+                    Section {
+                        ForEach(budgetWarnings, id: \.self) { warning in
+                            Label(warning, systemImage: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                        }
+                    }
+                }
                 Section {
                     Button("Delete Expense", role: .destructive) {
                         showingDeleteConfirmation = true
@@ -94,10 +109,15 @@ struct ExpenseEditView: View {
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete \(expense.title)?",
                 message: "This action cannot be undone.",
-                confirmLabel: "Delete"
-            ) {
-                delete()
-            }
+                confirmLabel: "Delete",
+                successMessage: "Expense deleted",
+                onConfirm: {
+                    delete()
+                },
+                onDismiss: {
+                    dismiss()
+                }
+            )
             .safeAreaInset(edge: .bottom) {
                 Button("Save Changes") {
                     save()
@@ -140,7 +160,6 @@ struct ExpenseEditView: View {
     private func delete() {
         modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
         modelContext.delete(expense)
-        dismiss()
     }
 }
 
