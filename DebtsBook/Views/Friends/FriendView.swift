@@ -31,6 +31,7 @@ struct FriendView: View {
                                     .foregroundColor(balance(for: friend) > 0 ? .green : .red)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }

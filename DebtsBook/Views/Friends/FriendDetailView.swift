@@ -71,6 +71,7 @@ struct FriendDetailView: View {
             }
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
 
             Picker("View", selection: $selectedTab) {
                 ForEach(FriendDetailTab.allCases, id: \.self) { tab in
@@ -79,6 +80,7 @@ struct FriendDetailView: View {
             }
             .pickerStyle(.segmented)
             .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
 
             switch selectedTab {
             case .expenses:
