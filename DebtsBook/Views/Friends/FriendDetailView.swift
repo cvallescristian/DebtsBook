@@ -111,16 +111,14 @@ struct FriendDetailView: View {
                 EmptyView()
             }
         }
-        .confirmationDialog(
-            "Settle up with \(friend.name)?",
+        .confirmationModal(
             isPresented: $showingSettleUpConfirmation,
-            titleVisibility: .visible
+            title: "Settle up with \(friend.name)?",
+            message: "This marks all of \(friend.name)'s expenses as paid.",
+            confirmLabel: "Settle Up",
+            isDestructive: false
         ) {
-            Button("Settle Up") {
-                settleUp()
-            }
-        } message: {
-            Text("This marks all of \(friend.name)'s expenses as paid.")
+            settleUp()
         }
         .navigationTitle(friend.name)
         .toolbar {

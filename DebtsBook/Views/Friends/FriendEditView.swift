@@ -28,16 +28,13 @@ struct FriendEditView: View {
                     }
                 }
             }
-            .confirmationDialog(
-                "Delete \(friend.name)?",
+            .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
-                titleVisibility: .visible
+                title: "Delete \(friend.name)?",
+                message: "This action cannot be undone.",
+                confirmLabel: "Delete"
             ) {
-                Button("Delete", role: .destructive) {
-                    delete()
-                }
-            } message: {
-                Text("This action cannot be undone.")
+                delete()
             }
             .navigationTitle(Text("Edit Friend"))
             .navigationBarTitleDisplayMode(.inline)

@@ -78,16 +78,13 @@ struct ExpenseEditView: View {
                     }
                 }
             }
-            .confirmationDialog(
-                "Delete \(expense.title)?",
+            .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
-                titleVisibility: .visible
+                title: "Delete \(expense.title)?",
+                message: "This action cannot be undone.",
+                confirmLabel: "Delete"
             ) {
-                Button("Delete", role: .destructive) {
-                    delete()
-                }
-            } message: {
-                Text("This action cannot be undone.")
+                delete()
             }
             .safeAreaInset(edge: .bottom) {
                 Button("Save Changes") {
