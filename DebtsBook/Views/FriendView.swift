@@ -11,7 +11,7 @@ struct FriendView: View {
             List {
                 ForEach(friends) { friend in
                     NavigationLink {
-                        FriendDetailView()
+                        FriendDetailView(friend: friend)
                     } label: {
                         Text(friend.name)
                     }

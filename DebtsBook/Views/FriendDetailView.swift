@@ -2,7 +2,11 @@ import SwiftUI
 import SwiftData
 
 struct FriendDetailView: View {
-    
+
+    let friend: Friend
+    @State private var showingFriendEdit: Bool = false
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         List {
             HStack {
@@ -20,13 +24,16 @@ struct FriendDetailView: View {
                 }
             }
         }
-        .navigationTitle("Cristian")
+        .navigationTitle(friend.name)
         .toolbar {
             Button {
-//                    showingAddExpense = true
+                showingFriendEdit = true
             } label: {
                 Image(systemName: "square.and.pencil")
             }
+        }
+        .sheet(isPresented: $showingFriendEdit){
+            FriendEditView(friend: friend, onDelete: { dismiss() })
         }
     }
 }
@@ -34,6 +41,6 @@ struct FriendDetailView: View {
 
 #Preview {
     NavigationStack {
-        FriendDetailView()
+        FriendDetailView(friend: Friend(name: "Test Name"))
     }
 }
