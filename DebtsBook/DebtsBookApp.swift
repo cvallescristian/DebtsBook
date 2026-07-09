@@ -5,8 +5,8 @@ import SwiftData
 struct DebtsBookApp: App {
     var body: some Scene {
         WindowGroup {
-            FriendView()
+            MainTabView()
         }
-        .modelContainer(for: Friend.self)
+        .modelContainer(for: [Friend.self, Expense.self])
     }
 }
