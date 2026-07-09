@@ -40,5 +40,5 @@ struct ExpensesView: View {
 
 #Preview {
     ExpensesView()
-        .modelContainer(for: [Friend.self, Expense.self], inMemory: true)
+        .modelContainer(PreviewSampleData.container)
 }

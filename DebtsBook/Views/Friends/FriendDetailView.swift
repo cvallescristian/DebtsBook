@@ -41,6 +41,7 @@ struct FriendDetailView: View {
 
 #Preview {
     NavigationStack {
-        FriendDetailView(friend: Friend(name: "Test Name"))
+        FriendDetailView(friend: PreviewSampleData.friend)
     }
+    .modelContainer(PreviewSampleData.container)
 }

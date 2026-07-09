@@ -40,5 +40,5 @@ struct FriendView: View {
 
 #Preview {
     FriendView()
-        .modelContainer(for: Friend.self, inMemory: true)
+        .modelContainer(PreviewSampleData.container)
 }

@@ -9,14 +9,14 @@ class Expense {
     var isSettled: Bool = false
     var createdAt: Date
     
-    var paidBy: Friend?
-    var debtor: Friend?
-    
-    init(name: String, amount: Decimal, paidBy: Friend, debtor: Friend) {
-        self.title = name
+    var friend: Friend?
+    var paidByMe: Bool
+
+    init(title: String, amount: Decimal, friend: Friend, paidByMe: Bool) {
+        self.title = title
         self.amount = amount
-        self.paidBy = paidBy
-        self.debtor = debtor
+        self.friend = friend
+        self.paidByMe = paidByMe
         self.createdAt = Date()
     }
 }
