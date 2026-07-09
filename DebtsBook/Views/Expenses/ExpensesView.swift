@@ -47,14 +47,20 @@ struct ExpensesView: View {
                     ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses will show up here."))
                 }
             }
-            .navigationTitle("Expenses")
-            .toolbar {
+            .overlay(alignment: .bottomTrailing) {
                 Button {
                     showingExpenseNew = true
                 } label: {
-                    Image(systemName: "plus")
+                    Label("Add Expense", systemImage: "plus")
+                        .font(.headline)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
                 }
+                .buttonStyle(.borderedProminent)
+                .clipShape(Capsule())
+                .padding()
             }
+            .navigationTitle("Expenses")
             .sheet(isPresented: $showingExpenseNew){
                 ExpenseNewView()
             }
