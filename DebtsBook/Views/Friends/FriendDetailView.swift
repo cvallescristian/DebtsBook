@@ -113,6 +113,19 @@ struct FriendDetailView: View {
                 EmptyView()
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showingExpenseNew = true
+            } label: {
+                Label("Add Expense", systemImage: "plus")
+                    .font(.headline)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .clipShape(Capsule())
+            .padding()
+        }
         .confirmationModal(
             isPresented: $showingSettleUpConfirmation,
             title: "Settle up with \(friend.name)?",
@@ -125,11 +138,6 @@ struct FriendDetailView: View {
         }
         .navigationTitle(friend.name)
         .toolbar {
-            Button {
-                showingExpenseNew = true
-            } label: {
-                Image(systemName: "plus")
-            }
             Button {
                 showingFriendEdit = true
             } label: {

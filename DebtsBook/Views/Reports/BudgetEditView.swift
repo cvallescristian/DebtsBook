@@ -39,7 +39,6 @@ struct BudgetEditView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete this budget?",

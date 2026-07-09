@@ -31,7 +31,6 @@ struct FriendEditView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete \(friend.name)?",

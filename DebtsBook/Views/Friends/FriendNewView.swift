@@ -15,7 +15,6 @@ struct FriendNewView: View {
                     .focused($isInputFocused)
             }
             .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .navigationTitle(Text("New Friend"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

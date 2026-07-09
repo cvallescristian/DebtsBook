@@ -34,13 +34,13 @@ struct ProfileView: View {
                 } header: {
                     Text("Danger Zone")
                 } footer: {
-                    Text("Resetting the app permanently deletes all friends, expenses, and activity.")
+                    Text("Deleting all expenses also deletes their activity. Resetting the app permanently deletes all friends, expenses, and activity.")
                 }
             }
             .confirmationModal(
                 isPresented: $showingDeleteExpensesConfirmation,
                 title: "Delete all expenses?",
-                message: "This action cannot be undone.",
+                message: "This also deletes all activity. This action cannot be undone.",
                 confirmLabel: "Delete All Expenses",
                 successMessage: "All expenses deleted"
             ) {
@@ -61,6 +61,7 @@ struct ProfileView: View {
 
     private func deleteAllExpenses() {
         deleteAll(Expense.self)
+        deleteAll(Activity.self)
     }
 
     private func resetApp() {

@@ -95,7 +95,6 @@ struct ExpenseNewView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(TapGesture().onEnded { isInputFocused = false })
             .safeAreaInset(edge: .bottom) {
                 Button("Create Expense") {
                     save()
