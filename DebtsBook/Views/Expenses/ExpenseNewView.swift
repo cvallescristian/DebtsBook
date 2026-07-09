@@ -14,6 +14,10 @@ struct ExpenseNewView: View {
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool = true
 
+    init(friend: Friend? = nil) {
+        _friendID = State(initialValue: friend?.persistentModelID)
+    }
+
     private var selectedFriend: Friend? {
         friends.first { $0.persistentModelID == friendID }
     }

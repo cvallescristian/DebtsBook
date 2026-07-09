@@ -5,6 +5,7 @@ struct FriendDetailView: View {
 
     let friend: Friend
     @State private var showingFriendEdit: Bool = false
+    @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
     @State private var showingSettleUpConfirmation: Bool = false
     @Environment(\.dismiss) private var dismiss
@@ -81,6 +82,11 @@ struct FriendDetailView: View {
         .navigationTitle(friend.name)
         .toolbar {
             Button {
+                showingExpenseNew = true
+            } label: {
+                Image(systemName: "plus")
+            }
+            Button {
                 showingFriendEdit = true
             } label: {
                 Image(systemName: "square.and.pencil")
@@ -88,6 +94,9 @@ struct FriendDetailView: View {
         }
         .sheet(isPresented: $showingFriendEdit){
             FriendEditView(friend: friend, onDelete: { dismiss() })
+        }
+        .sheet(isPresented: $showingExpenseNew) {
+            ExpenseNewView(friend: friend)
         }
         .sheet(item: $editingExpense) { expense in
             ExpenseEditView(expense: expense)
