@@ -1,28 +1,12 @@
 import SwiftUI
 import SwiftData
 
-private enum ReportRange: String, CaseIterable {
-    case week = "Week"
-    case month = "Month"
-    case year = "Year"
-
-    var dateInterval: DateInterval {
-        let calendar = Calendar.current
-        let now = Date()
-        let component: Calendar.Component
-        switch self {
-        case .week: component = .weekOfYear
-        case .month: component = .month
-        case .year: component = .year
-        }
-        return calendar.dateInterval(of: component, for: now) ?? DateInterval(start: now, end: now)
-    }
-}
-
 struct ReportsView: View {
 
-    @State private var selectedRange: ReportRange = .week
+    @State private var selectedRange: BudgetPeriod = .week
+    @State private var showingBudgetEdit: Bool = false
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
+    @Query private var budgets: [Budget]
 
     private var expensesInRange: [Expense] {
         let interval = selectedRange.dateInterval
@@ -33,11 +17,20 @@ struct ReportsView: View {
         expensesInRange.reduce(0) { $0 + $1.amount }
     }
 
+    private var budgetForSelectedRange: Budget? {
+        budgets.first { $0.period == selectedRange }
+    }
+
+    private var remaining: Decimal? {
+        guard let budgetForSelectedRange else { return nil }
+        return budgetForSelectedRange.amount - total
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Picker("Range", selection: $selectedRange) {
-                    ForEach(ReportRange.allCases, id: \.self) { range in
+                    ForEach(BudgetPeriod.allCases, id: \.self) { range in
                         Text(range.rawValue).tag(range)
                     }
                 }
@@ -53,6 +46,31 @@ struct ReportsView: View {
                         .font(.largeTitle.bold())
                 }
                 .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+                Button {
+                    showingBudgetEdit = true
+                } label: {
+                    if let budgetForSelectedRange, let remaining {
+                        VStack(spacing: 4) {
+                            Text(remaining >= 0 ? "Remaining Budget" : "Over Budget")
+                                .foregroundStyle(.secondary)
+                            Text(abs(remaining), format: .currency(code: "NZD"))
+                                .font(.title.bold())
+                                .foregroundColor(remaining >= 0 ? .green : .red)
+                            Text("of \(budgetForSelectedRange.amount, format: .currency(code: "NZD")) budget")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        Label("Set a \(selectedRange.rawValue)ly Budget", systemImage: "target")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(.primary)
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
@@ -74,6 +92,9 @@ struct ReportsView: View {
                 }
             }
             .navigationTitle("Reports")
+            .sheet(isPresented: $showingBudgetEdit) {
+                BudgetEditView(period: selectedRange, existingBudget: budgetForSelectedRange)
+            }
         }
     }
 }

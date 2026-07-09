@@ -6,7 +6,7 @@ enum PreviewSampleData {
 
     static let container: ModelContainer = {
         let container = try! ModelContainer(
-            for: Friend.self, Expense.self, Activity.self,
+            for: Friend.self, Expense.self, Activity.self, Budget.self,
             configurations: .init(isStoredInMemoryOnly: true)
         )
 
@@ -28,6 +28,8 @@ enum PreviewSampleData {
         container.mainContext.insert(Activity(type: .created, expenseTitle: movieTickets.title, friendName: cristian.name, amount: movieTickets.owedAmount, paidByMe: movieTickets.paidByMe, expense: movieTickets, friend: cristian, date: Date().addingTimeInterval(-3600 * 8)))
         container.mainContext.insert(Activity(type: .created, expenseTitle: dinner.title, friendName: ana.name, amount: dinner.owedAmount, paidByMe: dinner.paidByMe, expense: dinner, friend: ana, date: Date().addingTimeInterval(-3600 * 20)))
         container.mainContext.insert(Activity(type: .created, expenseTitle: coffee.title, amount: coffee.amount, paidByMe: true, expense: coffee))
+
+        container.mainContext.insert(Budget(amount: 100, period: .week))
 
         return container
     }()
