@@ -4,14 +4,14 @@ import SwiftData
 
 @Model
 class Expense {
-    var title: String
-    var amount: Decimal
+    var title: String = ""
+    var amount: Decimal = 0
     var isSettled: Bool = false
-    var createdAt: Date
-    var date: Date
+    var createdAt: Date = Date()
+    var date: Date = Date()
 
     var friend: Friend?
-    var paidByMe: Bool
+    var paidByMe: Bool = true
     var splitType: SplitType = SplitType.equally
     var comment: String?
 

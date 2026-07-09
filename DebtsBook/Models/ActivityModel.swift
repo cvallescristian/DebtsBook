@@ -13,10 +13,10 @@ enum ActivityType: String, Codable {
 @Model
 class Activity {
     var type: ActivityType = ActivityType.created
-    var expenseTitle: String
+    var expenseTitle: String = ""
     var friendName: String?
-    var amount: Decimal
-    var paidByMe: Bool
+    var amount: Decimal = 0
+    var paidByMe: Bool = true
     var date: Date = Date()
 
     @Relationship(deleteRule: .nullify)

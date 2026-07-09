@@ -20,7 +20,7 @@ enum BudgetPeriod: String, Codable, CaseIterable {
 
 @Model
 class Budget {
-    var amount: Decimal
+    var amount: Decimal = 0
     var period: BudgetPeriod = BudgetPeriod.week
 
     init(amount: Decimal, period: BudgetPeriod) {
