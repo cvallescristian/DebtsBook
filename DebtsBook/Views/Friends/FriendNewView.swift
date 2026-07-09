@@ -6,12 +6,15 @@ struct FriendNewView: View {
     @State private var name: String = ""
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    
+    @FocusState private var isInputFocused: Bool
+
     var body: some View {
         NavigationStack {
             Form {
                 TextField("Name", text: $name)
+                    .focused($isInputFocused)
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle(Text("New Friend"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -26,6 +29,12 @@ struct FriendNewView: View {
                     }
                     .disabled(name.isEmpty)
                     .tint(.blue)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isInputFocused = false
+                    }
                 }
             }
         }

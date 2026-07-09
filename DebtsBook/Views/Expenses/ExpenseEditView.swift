@@ -9,21 +9,26 @@ struct ExpenseEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \Friend.name) private var friends: [Friend]
+    @Query private var expenses: [Expense]
+    @Query private var budgets: [Budget]
 
     @State private var title: String
     @State private var amount: Decimal?
     @State private var date: Date
+    @State private var isPersonal: Bool
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool
     @State private var splitType: SplitType
     @State private var comment: String
     @State private var showingDeleteConfirmation: Bool = false
+    @FocusState private var isInputFocused: Bool
 
     init(expense: Expense) {
         self.expense = expense
         _title = State(initialValue: expense.title)
         _amount = State(initialValue: expense.amount)
         _date = State(initialValue: expense.date)
+        _isPersonal = State(initialValue: expense.isPersonal)
         _friendID = State(initialValue: expense.friend?.persistentModelID)
         _paidByMe = State(initialValue: expense.paidByMe)
         _splitType = State(initialValue: expense.splitType)
@@ -35,7 +40,12 @@ struct ExpenseEditView: View {
     }
 
     private var isSaveDisabled: Bool {
-        title.isEmpty || amount == nil || friendID == nil
+        title.isEmpty || amount == nil || (!isPersonal && friendID == nil)
+    }
+
+    private var budgetWarnings: [String] {
+        guard let amount, isPersonal else { return [] }
+        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, excluding: expense.persistentModelID)
     }
 
     var body: some View {
@@ -43,34 +53,55 @@ struct ExpenseEditView: View {
             Form {
                 Section("What?") {
                     TextField("Title (e.g. Groceries)", text: $title)
+                        .focused($isInputFocused)
                     TextField("Amount", value: $amount, format: .currency(code: "NZD"))
                         .keyboardType(.decimalPad)
+                        .focused($isInputFocused)
                 }
                 Section("When?") {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                 }
-                Section("Who?") {
-                    Picker("Friend", selection: $friendID) {
-                        Text("Select").tag(nil as PersistentIdentifier?)
-                        ForEach(friends) { friend in
-                            Text(friend.name)
-                                .tag(friend.persistentModelID as PersistentIdentifier?)
+                Section {
+                    Picker("Kind", selection: $isPersonal) {
+                        Text("With a Friend").tag(false)
+                        Text("Just Me").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                if !isPersonal {
+                    Section("Who?") {
+                        Picker("Friend", selection: $friendID) {
+                            Text("Select").tag(nil as PersistentIdentifier?)
+                            ForEach(friends) { friend in
+                                Text(friend.name)
+                                    .tag(friend.persistentModelID as PersistentIdentifier?)
+                            }
                         }
                     }
-                }
-                if let selectedFriend {
-                    Section("How was this expense split?") {
-                        SplitOptionsPicker(
-                            amount: amount ?? 0,
-                            friendName: selectedFriend.name,
-                            paidByMe: $paidByMe,
-                            splitType: $splitType
-                        )
+                    if let selectedFriend {
+                        Section("How was this expense split?") {
+                            SplitOptionsPicker(
+                                amount: amount ?? 0,
+                                friendName: selectedFriend.name,
+                                paidByMe: $paidByMe,
+                                splitType: $splitType
+                            )
+                        }
                     }
                 }
                 Section("Comment") {
                     TextField("Optional comment", text: $comment, axis: .vertical)
                         .lineLimit(2, reservesSpace: true)
+                        .focused($isInputFocused)
+                }
+                if !budgetWarnings.isEmpty {
+                    Section {
+                        ForEach(budgetWarnings, id: \.self) { warning in
+                            Label(warning, systemImage: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                        }
+                    }
                 }
                 Section {
                     Button("Delete Expense", role: .destructive) {
@@ -78,14 +109,20 @@ struct ExpenseEditView: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
                 title: "Delete \(expense.title)?",
                 message: "This action cannot be undone.",
-                confirmLabel: "Delete"
-            ) {
-                delete()
-            }
+                confirmLabel: "Delete",
+                successMessage: "Expense deleted",
+                onConfirm: {
+                    delete()
+                },
+                onDismiss: {
+                    dismiss()
+                }
+            )
             .safeAreaInset(edge: .bottom) {
                 Button("Save Changes") {
                     save()
@@ -106,28 +143,34 @@ struct ExpenseEditView: View {
                         dismiss()
                     }
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isInputFocused = false
+                    }
+                }
             }
         }
     }
 
     private func save() {
-        guard let amount, let selectedFriend else { return }
+        guard let amount else { return }
+        guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         expense.title = title
         expense.amount = amount
         expense.date = date
-        expense.friend = selectedFriend
+        expense.friend = isPersonal ? nil : selectedFriend
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
-        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: selectedFriend.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: selectedFriend))
+        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
         dismiss()
     }
 
     private func delete() {
-        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name ?? "", amount: expense.owedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
+        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
         modelContext.delete(expense)
-        dismiss()
     }
 }
 

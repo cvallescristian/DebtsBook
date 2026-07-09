@@ -113,22 +113,31 @@ struct FriendDetailView: View {
                 EmptyView()
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showingExpenseNew = true
+            } label: {
+                Label("Add Expense", systemImage: "plus")
+                    .font(.headline)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .clipShape(Capsule())
+            .padding()
+        }
         .confirmationModal(
             isPresented: $showingSettleUpConfirmation,
             title: "Settle up with \(friend.name)?",
             message: "This marks all of \(friend.name)'s expenses as paid.",
             confirmLabel: "Settle Up",
+            successMessage: "Settled up with \(friend.name)",
             isDestructive: false
         ) {
             settleUp()
         }
         .navigationTitle(friend.name)
         .toolbar {
-            Button {
-                showingExpenseNew = true
-            } label: {
-                Image(systemName: "plus")
-            }
             Button {
                 showingFriendEdit = true
             } label: {

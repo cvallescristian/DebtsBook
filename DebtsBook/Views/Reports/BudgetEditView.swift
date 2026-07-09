@@ -1,51 +1,58 @@
 import SwiftUI
 import SwiftData
 
-struct FriendEditView: View {
-    
-    let friend: Friend
-    var onDelete: () -> Void = {}
+struct BudgetEditView: View {
 
-    @State private var name: String
-    @State private var showingDeleteConfirmation: Bool = false
-    @Environment(\.dismiss) private var dismiss
+    let period: BudgetPeriod
+    let existingBudget: Budget?
+
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var amount: Decimal?
+    @State private var showingDeleteConfirmation: Bool = false
     @FocusState private var isInputFocused: Bool
 
-    init(friend: Friend, onDelete: @escaping () -> Void = {}) {
-        self.friend = friend
-        self.onDelete = onDelete
-        _name = State(initialValue: friend.name)
+    init(period: BudgetPeriod, existingBudget: Budget?) {
+        self.period = period
+        self.existingBudget = existingBudget
+        _amount = State(initialValue: existingBudget?.amount)
+    }
+
+    private var isSaveDisabled: Bool {
+        amount == nil
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Name", text: $name)
+                TextField("Amount", value: $amount, format: .currency(code: "NZD"))
+                    .keyboardType(.decimalPad)
                     .focused($isInputFocused)
 
-                Section {
-                    Button("Delete Friend", role: .destructive) {
-                        showingDeleteConfirmation = true
+                if existingBudget != nil {
+                    Section {
+                        Button("Delete Budget", role: .destructive) {
+                            showingDeleteConfirmation = true
+                        }
                     }
                 }
             }
             .scrollDismissesKeyboard(.interactively)
             .confirmationModal(
                 isPresented: $showingDeleteConfirmation,
-                title: "Delete \(friend.name)?",
+                title: "Delete this budget?",
                 message: "This action cannot be undone.",
                 confirmLabel: "Delete",
-                successMessage: "\(friend.name) deleted",
+                successMessage: "Budget deleted",
                 onConfirm: {
                     delete()
                 },
                 onDismiss: {
                     dismiss()
-                    onDelete()
                 }
             )
-            .navigationTitle(Text("Edit Friend"))
+            .navigationTitle("\(period.rawValue)ly Budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -57,8 +64,7 @@ struct FriendEditView: View {
                     Button("Save") {
                         save()
                     }
-                    .disabled(name.isEmpty)
-                    .tint(.blue)
+                    .disabled(isSaveDisabled)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -71,16 +77,23 @@ struct FriendEditView: View {
     }
 
     private func save() {
-        friend.name = name
+        guard let amount else { return }
+        if let existingBudget {
+            existingBudget.amount = amount
+        } else {
+            modelContext.insert(Budget(amount: amount, period: period))
+        }
         dismiss()
     }
 
     private func delete() {
-        modelContext.delete(friend)
+        guard let existingBudget else { return }
+        modelContext.delete(existingBudget)
     }
 }
 
 
 #Preview {
-    FriendEditView(friend: Friend(name: "Test Name"))
+    BudgetEditView(period: .week, existingBudget: nil)
+        .modelContainer(PreviewSampleData.container)
 }

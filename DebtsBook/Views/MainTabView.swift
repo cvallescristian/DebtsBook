@@ -8,6 +8,9 @@ struct MainTabView: View {
             Tab("Friends", systemImage: "person.2") {
                 FriendView()
             }
+            Tab("Reports", systemImage: "chart.bar") {
+                ReportsView()
+            }
             Tab("Expenses", systemImage: "dollarsign.circle") {
                 ExpensesView()
             }
