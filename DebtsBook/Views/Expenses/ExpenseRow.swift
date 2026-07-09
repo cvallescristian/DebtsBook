@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct ExpenseRow: View {
 
@@ -32,10 +33,10 @@ struct ExpenseRow: View {
 
 
 extension View {
-    func settleSwipeAction(for expense: Expense) -> some View {
+    func settleSwipeAction(for expense: Expense, in modelContext: ModelContext) -> some View {
         swipeActions {
             Button {
-                expense.isSettled.toggle()
+                toggleSettled(for: expense, in: modelContext)
             } label: {
                 Label(
                     expense.isSettled ? "Mark Unpaid" : "Mark Paid",
@@ -44,6 +45,22 @@ extension View {
             }
             .tint(expense.isSettled ? .orange : .green)
         }
+    }
+}
+
+/// Toggles `isSettled` and keeps the Activity log in sync: marking paid logs a `.paid` entry,
+/// marking unpaid again removes that same entry instead of logging a separate "unpaid" event.
+private func toggleSettled(for expense: Expense, in modelContext: ModelContext) {
+    if expense.isSettled {
+        expense.isSettled = false
+        let descriptor = FetchDescriptor<Activity>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        if let activities = try? modelContext.fetch(descriptor),
+           let lastPaidActivity = activities.first(where: { $0.type == .paid && $0.expense?.persistentModelID == expense.persistentModelID }) {
+            modelContext.delete(lastPaidActivity)
+        }
+    } else {
+        expense.isSettled = true
+        modelContext.insert(Activity(type: .paid, expenseTitle: expense.title, friendName: expense.friend?.name ?? "", amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: expense.friend))
     }
 }
 

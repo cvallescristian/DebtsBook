@@ -4,6 +4,7 @@ import SwiftData
 struct ExpensesView: View {
     @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
 
     private var balance: Decimal {
@@ -38,7 +39,7 @@ struct ExpensesView: View {
                             ExpenseRow(expense: expense)
                         }
                         .tint(.primary)
-                        .settleSwipeAction(for: expense)
+                        .settleSwipeAction(for: expense, in: modelContext)
                     }
                 }
             } .overlay {

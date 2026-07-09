@@ -123,10 +123,12 @@ struct ExpenseEditView: View {
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
+        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: selectedFriend.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: selectedFriend))
         dismiss()
     }
 
     private func delete() {
+        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name ?? "", amount: expense.owedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
         modelContext.delete(expense)
         dismiss()
     }

@@ -1,18 +1,32 @@
 import SwiftUI
 import SwiftData
 
+private enum FriendDetailTab: String, CaseIterable {
+    case expenses = "Expenses"
+    case activity = "Activity"
+}
+
 struct FriendDetailView: View {
 
     let friend: Friend
+    @State private var selectedTab: FriendDetailTab = .expenses
     @State private var showingFriendEdit: Bool = false
     @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
     @State private var showingSettleUpConfirmation: Bool = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Query private var expenses: [Expense]
+    @Query private var activities: [Activity]
 
     private var friendsExpenses: [Expense] {
         expenses
+            .filter { $0.friend?.persistentModelID == friend.persistentModelID }
+            .sorted { $0.date > $1.date }
+    }
+
+    private var friendsActivities: [Activity] {
+        activities
             .filter { $0.friend?.persistentModelID == friend.persistentModelID }
             .sorted { $0.date > $1.date }
     }
@@ -58,15 +72,32 @@ struct FriendDetailView: View {
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
 
-            Section("Expenses") {
-                ForEach(friendsExpenses) { expense in
-                    Button {
-                        editingExpense = expense
-                    } label: {
-                        ExpenseRow(expense: expense)
+            Picker("View", selection: $selectedTab) {
+                ForEach(FriendDetailTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .listRowBackground(Color.clear)
+
+            switch selectedTab {
+            case .expenses:
+                Section {
+                    ForEach(friendsExpenses) { expense in
+                        Button {
+                            editingExpense = expense
+                        } label: {
+                            ExpenseRow(expense: expense)
+                        }
+                        .tint(.primary)
+                        .settleSwipeAction(for: expense, in: modelContext)
                     }
-                    .tint(.primary)
-                    .settleSwipeAction(for: expense)
+                }
+            case .activity:
+                Section {
+                    ForEach(friendsActivities) { activity in
+                        ActivityRow(activity: activity)
+                    }
                 }
             }
         }
@@ -106,9 +137,11 @@ struct FriendDetailView: View {
     }
 
     private func settleUp() {
+        let settledAmount = balance
         for expense in friendsExpenses where !expense.isSettled {
             expense.isSettled = true
         }
+        modelContext.insert(Activity(type: .settledUp, expenseTitle: "", friendName: friend.name, amount: abs(settledAmount), paidByMe: settledAmount > 0, friend: friend))
     }
 }
 

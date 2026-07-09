@@ -93,6 +93,7 @@ struct ExpenseNewView: View {
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         let expense = Expense(title: title, amount: amount, friend: selectedFriend, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
+        modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: selectedFriend.name, amount: expense.owedAmount, paidByMe: paidByMe, expense: expense, friend: selectedFriend))
         dismiss()
     }
 }
