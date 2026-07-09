@@ -14,6 +14,7 @@ struct ExpenseNewView: View {
     @State private var date: Date = Date()
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool = true
+    @State private var splitType: SplitType = .equally
     @State private var comment: String = ""
 
     init(friend: Friend? = nil) {
@@ -47,16 +48,15 @@ struct ExpenseNewView: View {
                                 .tag(friend.persistentModelID as PersistentIdentifier?)
                         }
                     }
-                    if let selectedFriend {
-                        VStack(alignment: .leading) {
-                            Text("Who paid?")
-                            Picker("Who paid?", selection: $paidByMe) {
-                                Text("Me").tag(true)
-                                Text(selectedFriend.name).tag(false)
-                            }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
-                        }
+                }
+                if let selectedFriend {
+                    Section("How was this expense split?") {
+                        SplitOptionsPicker(
+                            amount: amount ?? 0,
+                            friendName: selectedFriend.name,
+                            paidByMe: $paidByMe,
+                            splitType: $splitType
+                        )
                     }
                 }
                 Section("Comment") {
@@ -91,7 +91,7 @@ struct ExpenseNewView: View {
     private func save() {
         guard let amount, let selectedFriend else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        let expense = Expense(title: title, amount: amount, friend: selectedFriend, paidByMe: paidByMe, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
+        let expense = Expense(title: title, amount: amount, friend: selectedFriend, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
         dismiss()
     }

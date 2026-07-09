@@ -15,6 +15,7 @@ struct ExpenseEditView: View {
     @State private var date: Date
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool
+    @State private var splitType: SplitType
     @State private var comment: String
     @State private var showingDeleteConfirmation: Bool = false
 
@@ -25,6 +26,7 @@ struct ExpenseEditView: View {
         _date = State(initialValue: expense.date)
         _friendID = State(initialValue: expense.friend?.persistentModelID)
         _paidByMe = State(initialValue: expense.paidByMe)
+        _splitType = State(initialValue: expense.splitType)
         _comment = State(initialValue: expense.comment ?? "")
     }
 
@@ -55,16 +57,15 @@ struct ExpenseEditView: View {
                                 .tag(friend.persistentModelID as PersistentIdentifier?)
                         }
                     }
-                    if let selectedFriend {
-                        VStack(alignment: .leading) {
-                            Text("Who paid?")
-                            Picker("Who paid?", selection: $paidByMe) {
-                                Text("Me").tag(true)
-                                Text(selectedFriend.name).tag(false)
-                            }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
-                        }
+                }
+                if let selectedFriend {
+                    Section("How was this expense split?") {
+                        SplitOptionsPicker(
+                            amount: amount ?? 0,
+                            friendName: selectedFriend.name,
+                            paidByMe: $paidByMe,
+                            splitType: $splitType
+                        )
                     }
                 }
                 Section("Comment") {
@@ -120,6 +121,7 @@ struct ExpenseEditView: View {
         expense.date = date
         expense.friend = selectedFriend
         expense.paidByMe = paidByMe
+        expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
         dismiss()
     }
