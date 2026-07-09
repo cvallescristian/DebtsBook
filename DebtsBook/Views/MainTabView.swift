@@ -14,6 +14,9 @@ struct MainTabView: View {
             Tab("Activity", systemImage: "clock.arrow.circlepath") {
                 ActivityView()
             }
+            Tab("Reports", systemImage: "chart.bar") {
+                ReportsView()
+            }
             Tab("Profile", systemImage: "person.crop.circle") {
                 ProfileView()
             }

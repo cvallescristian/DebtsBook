@@ -15,16 +15,23 @@ struct ExpenseRow: View {
                         .font(.caption)
                 }
                 Spacer()
-                Text(expense.signedAmount, format: .currency(code: "NZD").sign(strategy: .always()))
-                    .foregroundColor(expense.paidByMe ? .green : .red)
+                if expense.isPersonal {
+                    Text(expense.amount, format: .currency(code: "NZD"))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(expense.signedAmount, format: .currency(code: "NZD").sign(strategy: .always()))
+                        .foregroundColor(expense.paidByMe ? .green : .red)
+                }
             }
             HStack {
-                Text(expense.paidByLabel)
+                Text(expense.isPersonal ? "Personal" : expense.paidByLabel)
                 Text(expense.date, format: .dateTime.day().month().year())
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(expense.isSettled ? "Paid" : "Unpaid")
-                    .foregroundColor(expense.isSettled ? .green : .orange)
+                if !expense.isPersonal {
+                    Text(expense.isSettled ? "Paid" : "Unpaid")
+                        .foregroundColor(expense.isSettled ? .green : .orange)
+                }
             }
             .font(.caption)
         }
@@ -33,7 +40,16 @@ struct ExpenseRow: View {
 
 
 extension View {
+    @ViewBuilder
     func settleSwipeAction(for expense: Expense, in modelContext: ModelContext) -> some View {
+        if expense.isPersonal {
+            self
+        } else {
+            settleSwipeActionContent(for: expense, in: modelContext)
+        }
+    }
+
+    private func settleSwipeActionContent(for expense: Expense, in modelContext: ModelContext) -> some View {
         swipeActions {
             Button {
                 toggleSettled(for: expense, in: modelContext)
@@ -60,7 +76,7 @@ private func toggleSettled(for expense: Expense, in modelContext: ModelContext) 
         }
     } else {
         expense.isSettled = true
-        modelContext.insert(Activity(type: .paid, expenseTitle: expense.title, friendName: expense.friend?.name ?? "", amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: expense.friend))
+        modelContext.insert(Activity(type: .paid, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: expense.friend))
     }
 }
 
@@ -69,5 +85,6 @@ private func toggleSettled(for expense: Expense, in modelContext: ModelContext) 
     List {
         ExpenseRow(expense: Expense(title: "Groceries", amount: 42.50, friend: PreviewSampleData.friend, paidByMe: true, comment: "Split for the weekend BBQ"))
         ExpenseRow(expense: Expense(title: "Movie tickets", amount: 18, friend: PreviewSampleData.friend, paidByMe: false))
+        ExpenseRow(expense: Expense(title: "Coffee", amount: 5.5))
     }
 }

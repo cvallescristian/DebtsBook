@@ -14,7 +14,7 @@ enum ActivityType: String, Codable {
 class Activity {
     var type: ActivityType = ActivityType.created
     var expenseTitle: String
-    var friendName: String
+    var friendName: String?
     var amount: Decimal
     var paidByMe: Bool
     var date: Date = Date()
@@ -25,7 +25,7 @@ class Activity {
     @Relationship(deleteRule: .nullify)
     var friend: Friend?
 
-    init(type: ActivityType, expenseTitle: String, friendName: String, amount: Decimal, paidByMe: Bool, expense: Expense? = nil, friend: Friend? = nil, date: Date = Date()) {
+    init(type: ActivityType, expenseTitle: String, friendName: String? = nil, amount: Decimal, paidByMe: Bool, expense: Expense? = nil, friend: Friend? = nil, date: Date = Date()) {
         self.type = type
         self.expenseTitle = expenseTitle
         self.friendName = friendName
@@ -47,11 +47,17 @@ class Activity {
 
     var title: String {
         switch type {
-        case .created: return "You added \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
-        case .updated: return "You updated \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
-        case .deleted: return "You deleted \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
-        case .paid: return paidByMe ? "\(friendName) paid you." : "You paid \(friendName)."
-        case .settledUp: return "You settled up with \(friendName)."
+        case .created:
+            guard let friendName else { return "You added \u{201C}\(expenseTitle)\u{201D}." }
+            return "You added \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+        case .updated:
+            guard let friendName else { return "You updated \u{201C}\(expenseTitle)\u{201D}." }
+            return "You updated \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+        case .deleted:
+            guard let friendName else { return "You deleted \u{201C}\(expenseTitle)\u{201D}." }
+            return "You deleted \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+        case .paid: return paidByMe ? "\(friendName ?? "Friend") paid you." : "You paid \(friendName ?? "friend")."
+        case .settledUp: return "You settled up with \(friendName ?? "friend")."
         }
     }
 
@@ -59,9 +65,10 @@ class Activity {
         let formattedAmount = amount.formatted(.currency(code: "NZD"))
         switch type {
         case .created, .updated:
+            guard friendName != nil else { return "You spent \(formattedAmount)." }
             return paidByMe ? "You get back \(formattedAmount)." : "You owe \(formattedAmount)."
         case .paid:
-            return paidByMe ? "\(friendName) paid you \(formattedAmount)." : "You paid \(formattedAmount)."
+            return paidByMe ? "\(friendName ?? "Friend") paid you \(formattedAmount)." : "You paid \(formattedAmount)."
         case .settledUp:
             return "All settled up."
         case .deleted:
@@ -76,6 +83,7 @@ class Activity {
         case .paid, .settledUp:
             return .green
         case .created, .updated:
+            guard friendName != nil else { return .secondary }
             return paidByMe ? .green : .orange
         }
     }

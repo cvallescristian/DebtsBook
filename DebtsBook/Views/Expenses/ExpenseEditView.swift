@@ -13,6 +13,7 @@ struct ExpenseEditView: View {
     @State private var title: String
     @State private var amount: Decimal?
     @State private var date: Date
+    @State private var isPersonal: Bool
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool
     @State private var splitType: SplitType
@@ -24,6 +25,7 @@ struct ExpenseEditView: View {
         _title = State(initialValue: expense.title)
         _amount = State(initialValue: expense.amount)
         _date = State(initialValue: expense.date)
+        _isPersonal = State(initialValue: expense.isPersonal)
         _friendID = State(initialValue: expense.friend?.persistentModelID)
         _paidByMe = State(initialValue: expense.paidByMe)
         _splitType = State(initialValue: expense.splitType)
@@ -35,7 +37,7 @@ struct ExpenseEditView: View {
     }
 
     private var isSaveDisabled: Bool {
-        title.isEmpty || amount == nil || friendID == nil
+        title.isEmpty || amount == nil || (!isPersonal && friendID == nil)
     }
 
     var body: some View {
@@ -49,23 +51,33 @@ struct ExpenseEditView: View {
                 Section("When?") {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                 }
-                Section("Who?") {
-                    Picker("Friend", selection: $friendID) {
-                        Text("Select").tag(nil as PersistentIdentifier?)
-                        ForEach(friends) { friend in
-                            Text(friend.name)
-                                .tag(friend.persistentModelID as PersistentIdentifier?)
+                Section {
+                    Picker("Kind", selection: $isPersonal) {
+                        Text("With a Friend").tag(false)
+                        Text("Just Me").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                if !isPersonal {
+                    Section("Who?") {
+                        Picker("Friend", selection: $friendID) {
+                            Text("Select").tag(nil as PersistentIdentifier?)
+                            ForEach(friends) { friend in
+                                Text(friend.name)
+                                    .tag(friend.persistentModelID as PersistentIdentifier?)
+                            }
                         }
                     }
-                }
-                if let selectedFriend {
-                    Section("How was this expense split?") {
-                        SplitOptionsPicker(
-                            amount: amount ?? 0,
-                            friendName: selectedFriend.name,
-                            paidByMe: $paidByMe,
-                            splitType: $splitType
-                        )
+                    if let selectedFriend {
+                        Section("How was this expense split?") {
+                            SplitOptionsPicker(
+                                amount: amount ?? 0,
+                                friendName: selectedFriend.name,
+                                paidByMe: $paidByMe,
+                                splitType: $splitType
+                            )
+                        }
                     }
                 }
                 Section("Comment") {
@@ -111,21 +123,22 @@ struct ExpenseEditView: View {
     }
 
     private func save() {
-        guard let amount, let selectedFriend else { return }
+        guard let amount else { return }
+        guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         expense.title = title
         expense.amount = amount
         expense.date = date
-        expense.friend = selectedFriend
+        expense.friend = isPersonal ? nil : selectedFriend
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
-        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: selectedFriend.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: selectedFriend))
+        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
         dismiss()
     }
 
     private func delete() {
-        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name ?? "", amount: expense.owedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
+        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
         modelContext.delete(expense)
         dismiss()
     }

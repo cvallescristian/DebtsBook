@@ -15,7 +15,7 @@ class Expense {
     var splitType: SplitType = SplitType.equally
     var comment: String?
 
-    init(title: String, amount: Decimal, friend: Friend, paidByMe: Bool, splitType: SplitType = .equally, date: Date = Date(), comment: String? = nil) {
+    init(title: String, amount: Decimal, friend: Friend? = nil, paidByMe: Bool = true, splitType: SplitType = .equally, date: Date = Date(), comment: String? = nil) {
         self.title = title
         self.amount = amount
         self.friend = friend
@@ -26,13 +26,20 @@ class Expense {
         self.createdAt = Date()
     }
 
+    var isPersonal: Bool {
+        friend == nil
+    }
+
     var paidByLabel: String {
-        paidByMe ? "You paid" : "\(friend?.name ?? "Someone") paid"
+        guard let friend else { return "You paid" }
+        return paidByMe ? "You paid" : "\(friend.name) paid"
     }
 
     /// The amount that changes hands between you and the friend, after accounting for the split type.
+    /// Personal expenses (no friend) aren't a debt, so this is 0.
     var owedAmount: Decimal {
-        splitType == .equally ? amount / 2 : amount
+        guard friend != nil else { return 0 }
+        return splitType == .equally ? amount / 2 : amount
     }
 
     var signedAmount: Decimal {

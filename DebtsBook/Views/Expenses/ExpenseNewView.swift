@@ -12,6 +12,7 @@ struct ExpenseNewView: View {
     @State private var title: String = ""
     @State private var amount: Decimal?
     @State private var date: Date = Date()
+    @State private var isPersonal: Bool = false
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool = true
     @State private var splitType: SplitType = .equally
@@ -26,7 +27,7 @@ struct ExpenseNewView: View {
     }
 
     private var isSaveDisabled: Bool {
-        title.isEmpty || amount == nil || friendID == nil
+        title.isEmpty || amount == nil || (!isPersonal && friendID == nil)
     }
 
     var body: some View {
@@ -40,23 +41,33 @@ struct ExpenseNewView: View {
                 Section("When?") {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                 }
-                Section("Who?") {
-                    Picker("Friend", selection: $friendID) {
-                        Text("Select").tag(nil as PersistentIdentifier?)
-                        ForEach(friends) { friend in
-                            Text(friend.name)
-                                .tag(friend.persistentModelID as PersistentIdentifier?)
+                Section {
+                    Picker("Kind", selection: $isPersonal) {
+                        Text("With a Friend").tag(false)
+                        Text("Just Me").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                if !isPersonal {
+                    Section("Who?") {
+                        Picker("Friend", selection: $friendID) {
+                            Text("Select").tag(nil as PersistentIdentifier?)
+                            ForEach(friends) { friend in
+                                Text(friend.name)
+                                    .tag(friend.persistentModelID as PersistentIdentifier?)
+                            }
                         }
                     }
-                }
-                if let selectedFriend {
-                    Section("How was this expense split?") {
-                        SplitOptionsPicker(
-                            amount: amount ?? 0,
-                            friendName: selectedFriend.name,
-                            paidByMe: $paidByMe,
-                            splitType: $splitType
-                        )
+                    if let selectedFriend {
+                        Section("How was this expense split?") {
+                            SplitOptionsPicker(
+                                amount: amount ?? 0,
+                                friendName: selectedFriend.name,
+                                paidByMe: $paidByMe,
+                                splitType: $splitType
+                            )
+                        }
                     }
                 }
                 Section("Comment") {
@@ -89,11 +100,12 @@ struct ExpenseNewView: View {
     }
     
     private func save() {
-        guard let amount, let selectedFriend else { return }
+        guard let amount else { return }
+        guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        let expense = Expense(title: title, amount: amount, friend: selectedFriend, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
+        let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
-        modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: selectedFriend.name, amount: expense.owedAmount, paidByMe: paidByMe, expense: expense, friend: selectedFriend))
+        modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.owedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
         dismiss()
     }
 }
