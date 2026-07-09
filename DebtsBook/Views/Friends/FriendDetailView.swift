@@ -6,21 +6,42 @@ struct FriendDetailView: View {
     let friend: Friend
     @State private var showingFriendEdit: Bool = false
     @Environment(\.dismiss) private var dismiss
+    @Query private var expenses: [Expense]
+
+    private var friendsExpenses: [Expense] {
+        expenses.filter { $0.friend?.persistentModelID == friend.persistentModelID }
+    }
+
+    private var balance: Decimal {
+        friendsExpenses.netBalance
+    }
 
     var body: some View {
         List {
             HStack {
-                Text("Overall, you are owned")
-                    .font(.title2)
-                Text("$10.00")
-                    .foregroundColor(.green)
-                    .font(Font.title2.bold())
+                if balance > 0 {
+                    Text("Overall, you are owed")
+                        .font(.title2)
+                    Text(balance, format: .currency(code: "NZD"))
+                        .foregroundColor(.green)
+                        .font(Font.title2.bold())
+                } else if balance < 0 {
+                    Text("Overall, you owe")
+                        .font(.title2)
+                    Text(-balance, format: .currency(code: "NZD"))
+                        .foregroundColor(.red)
+                        .font(Font.title2.bold())
+                } else {
+                    Label("Settled up", systemImage: "hand.thumbsup.fill")
+                        .font(.title2)
+                }
             }
             .listRowBackground(Color.clear)
 
             Section("Expenses") {
-                ForEach(0..<20) {
-                    Text("Expense \($0)")
+                ForEach(friendsExpenses) { expense in
+                    ExpenseRow(expense: expense)
+                        .settleSwipeAction(for: expense)
                 }
             }
         }

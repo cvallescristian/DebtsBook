@@ -33,24 +33,9 @@ struct ExpensesView: View {
                     NavigationLink {
 //                        ExpensesView()
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(expense.title)
-                                Spacer()
-                                Text(expense.signedAmount, format: .currency(code: "NZD").sign(strategy: .always()))
-                                    .foregroundColor(expense.paidByMe ? .green : .red)
-                            }
-                            HStack {
-                                Text(expense.paidByLabel)
-                                Text(expense.createdAt, format: .dateTime.day().month().year())
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Text(expense.isSettled ? "Paid" : "Unpaid")
-                                    .foregroundColor(expense.isSettled ? .green : .orange)
-                            }
-                            .font(.caption)
-                        }
+                        ExpenseRow(expense: expense)
                     }
+                    .settleSwipeAction(for: expense)
                 }
             } .overlay {
                 if expenses.isEmpty {
