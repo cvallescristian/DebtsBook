@@ -15,7 +15,7 @@ enum PreviewSampleData {
         container.mainContext.insert(cristian)
         container.mainContext.insert(ana)
 
-        container.mainContext.insert(Expense(title: "Groceries", amount: 42.50, friend: cristian, paidByMe: true))
+        container.mainContext.insert(Expense(title: "Groceries", amount: 42.50, friend: cristian, paidByMe: true, comment: "Split for the weekend BBQ"))
         container.mainContext.insert(Expense(title: "Movie tickets", amount: 18, friend: cristian, paidByMe: false))
         container.mainContext.insert(Expense(title: "Dinner", amount: 30, friend: ana, paidByMe: true))
 

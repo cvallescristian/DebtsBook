@@ -12,16 +12,20 @@ struct ExpenseEditView: View {
 
     @State private var title: String
     @State private var amount: Decimal?
+    @State private var date: Date
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool
+    @State private var comment: String
     @State private var showingDeleteConfirmation: Bool = false
 
     init(expense: Expense) {
         self.expense = expense
         _title = State(initialValue: expense.title)
         _amount = State(initialValue: expense.amount)
+        _date = State(initialValue: expense.date)
         _friendID = State(initialValue: expense.friend?.persistentModelID)
         _paidByMe = State(initialValue: expense.paidByMe)
+        _comment = State(initialValue: expense.comment ?? "")
     }
 
     private var selectedFriend: Friend? {
@@ -39,6 +43,9 @@ struct ExpenseEditView: View {
                     TextField("Title (e.g. Groceries)", text: $title)
                     TextField("Amount", value: $amount, format: .currency(code: "NZD"))
                         .keyboardType(.decimalPad)
+                }
+                Section("When?") {
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
                 }
                 Section("Who?") {
                     Picker("Friend", selection: $friendID) {
@@ -59,6 +66,10 @@ struct ExpenseEditView: View {
                             .labelsHidden()
                         }
                     }
+                }
+                Section("Comment") {
+                    TextField("Optional comment", text: $comment, axis: .vertical)
+                        .lineLimit(2, reservesSpace: true)
                 }
                 Section {
                     Button("Delete Expense", role: .destructive) {
@@ -103,10 +114,13 @@ struct ExpenseEditView: View {
 
     private func save() {
         guard let amount, let selectedFriend else { return }
+        let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         expense.title = title
         expense.amount = amount
+        expense.date = date
         expense.friend = selectedFriend
         expense.paidByMe = paidByMe
+        expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
         dismiss()
     }
 

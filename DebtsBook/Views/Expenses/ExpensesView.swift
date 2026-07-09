@@ -4,7 +4,7 @@ import SwiftData
 struct ExpensesView: View {
     @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
-    @Query(sort: \Expense.createdAt, order: .reverse) private var expenses: [Expense]
+    @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
 
     private var balance: Decimal {
         expenses.netBalance

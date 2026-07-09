@@ -8,13 +8,18 @@ struct ExpenseRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(expense.title)
+                if let comment = expense.comment, !comment.isEmpty {
+                    Image(systemName: "book.closed.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
                 Spacer()
                 Text(expense.signedAmount, format: .currency(code: "NZD").sign(strategy: .always()))
                     .foregroundColor(expense.paidByMe ? .green : .red)
             }
             HStack {
                 Text(expense.paidByLabel)
-                Text(expense.createdAt, format: .dateTime.day().month().year())
+                Text(expense.date, format: .dateTime.day().month().year())
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text(expense.isSettled ? "Paid" : "Unpaid")
@@ -45,7 +50,7 @@ extension View {
 
 #Preview {
     List {
-        ExpenseRow(expense: Expense(title: "Groceries", amount: 42.50, friend: PreviewSampleData.friend, paidByMe: true))
+        ExpenseRow(expense: Expense(title: "Groceries", amount: 42.50, friend: PreviewSampleData.friend, paidByMe: true, comment: "Split for the weekend BBQ"))
         ExpenseRow(expense: Expense(title: "Movie tickets", amount: 18, friend: PreviewSampleData.friend, paidByMe: false))
     }
 }

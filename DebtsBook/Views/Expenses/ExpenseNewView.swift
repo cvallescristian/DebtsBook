@@ -11,8 +11,10 @@ struct ExpenseNewView: View {
     
     @State private var title: String = ""
     @State private var amount: Decimal?
+    @State private var date: Date = Date()
     @State private var friendID: PersistentIdentifier?
     @State private var paidByMe: Bool = true
+    @State private var comment: String = ""
 
     init(friend: Friend? = nil) {
         _friendID = State(initialValue: friend?.persistentModelID)
@@ -34,6 +36,9 @@ struct ExpenseNewView: View {
                     TextField("Amount", value: $amount, format: .currency(code: "NZD"))
                         .keyboardType(.decimalPad)
                 }
+                Section("When?") {
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                }
                 Section("Who?") {
                     Picker("Friend", selection: $friendID) {
                         Text("Select").tag(nil as PersistentIdentifier?)
@@ -53,6 +58,10 @@ struct ExpenseNewView: View {
                             .labelsHidden()
                         }
                     }
+                }
+                Section("Comment") {
+                    TextField("Optional comment", text: $comment, axis: .vertical)
+                        .lineLimit(2, reservesSpace: true)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -81,7 +90,8 @@ struct ExpenseNewView: View {
     
     private func save() {
         guard let amount, let selectedFriend else { return }
-        let expense = Expense(title: title, amount: amount, friend: selectedFriend, paidByMe: paidByMe)
+        let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
+        let expense = Expense(title: title, amount: amount, friend: selectedFriend, paidByMe: paidByMe, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
         dismiss()
     }

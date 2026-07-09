@@ -12,7 +12,9 @@ struct FriendDetailView: View {
     @Query private var expenses: [Expense]
 
     private var friendsExpenses: [Expense] {
-        expenses.filter { $0.friend?.persistentModelID == friend.persistentModelID }
+        expenses
+            .filter { $0.friend?.persistentModelID == friend.persistentModelID }
+            .sorted { $0.date > $1.date }
     }
 
     private var balance: Decimal {

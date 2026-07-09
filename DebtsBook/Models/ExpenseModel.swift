@@ -8,15 +8,19 @@ class Expense {
     var amount: Decimal
     var isSettled: Bool = false
     var createdAt: Date
-    
+    var date: Date
+
     var friend: Friend?
     var paidByMe: Bool
+    var comment: String?
 
-    init(title: String, amount: Decimal, friend: Friend, paidByMe: Bool) {
+    init(title: String, amount: Decimal, friend: Friend, paidByMe: Bool, date: Date = Date(), comment: String? = nil) {
         self.title = title
         self.amount = amount
         self.friend = friend
         self.paidByMe = paidByMe
+        self.date = date
+        self.comment = comment
         self.createdAt = Date()
     }
 
