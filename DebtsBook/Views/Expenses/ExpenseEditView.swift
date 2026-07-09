@@ -44,7 +44,7 @@ struct ExpenseEditView: View {
     }
 
     private var budgetWarnings: [String] {
-        guard let amount, isPersonal || paidByMe else { return [] }
+        guard let amount, isPersonal else { return [] }
         return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, excluding: expense.persistentModelID)
     }
 
@@ -164,12 +164,12 @@ struct ExpenseEditView: View {
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
-        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
+        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
         dismiss()
     }
 
     private func delete() {
-        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
+        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
         modelContext.delete(expense)
     }
 }

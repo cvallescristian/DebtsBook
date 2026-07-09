@@ -34,7 +34,7 @@ struct ExpenseNewView: View {
     }
 
     private var budgetWarnings: [String] {
-        guard let amount, isPersonal || paidByMe else { return [] }
+        guard let amount, isPersonal else { return [] }
         return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date)
     }
 
@@ -131,7 +131,7 @@ struct ExpenseNewView: View {
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
-        modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.owedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
+        modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
         dismiss()
     }
 }

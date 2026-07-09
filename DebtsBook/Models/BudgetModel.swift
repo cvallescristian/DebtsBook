@@ -29,7 +29,8 @@ class Budget {
     }
 }
 
-/// Warnings for any budget an expense (dated `date`, costing `amount` out of your own pocket) would push over.
+/// Warnings for any budget a personal expense (dated `date`, costing `amount`) would push over.
+/// Budgets only track personal spending, not expenses shared with friends.
 /// Pass `excluding` when editing an existing expense so it isn't double-counted against itself.
 func exceededBudgetWarnings(
     budgets: [Budget],
@@ -41,7 +42,7 @@ func exceededBudgetWarnings(
     budgets.compactMap { budget in
         let interval = budget.period.dateInterval(containing: date)
         let existingTotal = expenses
-            .filter { $0.persistentModelID != excludedExpenseID && $0.paidByMe && interval.contains($0.date) }
+            .filter { $0.persistentModelID != excludedExpenseID && $0.isPersonal && interval.contains($0.date) }
             .reduce(Decimal(0)) { $0 + $1.amount }
         let newTotal = existingTotal + amount
         guard newTotal > budget.amount else { return nil }

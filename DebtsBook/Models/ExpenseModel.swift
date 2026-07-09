@@ -45,6 +45,12 @@ class Expense {
     var signedAmount: Decimal {
         paidByMe ? owedAmount : -owedAmount
     }
+
+    /// The amount to record in the Activity log: the real amount spent for personal expenses
+    /// (which have no debt), or the owed amount for expenses shared with a friend.
+    var loggedAmount: Decimal {
+        isPersonal ? amount : owedAmount
+    }
 }
 
 enum SplitType: String, Codable {

@@ -5,12 +5,13 @@ struct ReportsView: View {
 
     @State private var selectedRange: BudgetPeriod = .week
     @State private var showingBudgetEdit: Bool = false
+    @State private var editingExpense: Expense?
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query private var budgets: [Budget]
 
     private var expensesInRange: [Expense] {
         let interval = selectedRange.dateInterval()
-        return expenses.filter { $0.paidByMe && interval.contains($0.date) }
+        return expenses.filter { $0.isPersonal && interval.contains($0.date) }
     }
 
     private var total: Decimal {
@@ -52,6 +53,12 @@ struct ReportsView: View {
                 .labelsHidden()
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+
+                Text("Reports only track personal expenses (\"Just Me\") — expenses shared with friends aren't included.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .firstTextBaseline) {
@@ -105,9 +112,14 @@ struct ReportsView: View {
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
 
                 if !expensesInRange.isEmpty {
-                    Section("Expenses") {
+                    Section("Personal Expenses") {
                         ForEach(expensesInRange) { expense in
-                            ExpenseRow(expense: expense)
+                            Button {
+                                editingExpense = expense
+                            } label: {
+                                ExpenseRow(expense: expense)
+                            }
+                            .tint(.primary)
                         }
                     }
                 }
@@ -117,13 +129,16 @@ struct ReportsView: View {
                     ContentUnavailableView(
                         "No Spending",
                         systemImage: "chart.bar",
-                        description: Text("Expenses you paid for this \(selectedRange.rawValue.lowercased()) will show up here.")
+                        description: Text("Personal expenses (\"Just Me\") for this \(selectedRange.rawValue.lowercased()) will show up here.")
                     )
                 }
             }
             .navigationTitle("Reports")
             .sheet(isPresented: $showingBudgetEdit) {
                 BudgetEditView(period: selectedRange, existingBudget: budgetForSelectedRange)
+            }
+            .sheet(item: $editingExpense) { expense in
+                ExpenseEditView(expense: expense)
             }
         }
     }
