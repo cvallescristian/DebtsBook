@@ -5,6 +5,13 @@ struct FriendView: View {
     
     @State private var showingFriendNew: Bool = false
     @Query private var friends: [Friend]
+    @Query private var expenses: [Expense]
+
+    private func balance(for friend: Friend) -> Decimal {
+        expenses
+            .filter { $0.friend?.persistentModelID == friend.persistentModelID }
+            .netBalance
+    }
 
     var body: some View {
         NavigationStack {
@@ -13,7 +20,17 @@ struct FriendView: View {
                     NavigationLink {
                         FriendDetailView(friend: friend)
                     } label: {
-                        Text(friend.name)
+                        HStack {
+                            Text(friend.name)
+                            Spacer()
+                            if balance(for: friend) == 0 {
+                                Label("Settled up", systemImage: "hand.thumbsup.fill")
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(balance(for: friend), format: .currency(code: "NZD").sign(strategy: .always()))
+                                    .foregroundColor(balance(for: friend) > 0 ? .green : .red)
+                            }
+                        }
                     }
                 }
             }

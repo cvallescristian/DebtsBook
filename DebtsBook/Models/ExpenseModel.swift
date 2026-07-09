@@ -19,4 +19,21 @@ class Expense {
         self.paidByMe = paidByMe
         self.createdAt = Date()
     }
+
+    var paidByLabel: String {
+        paidByMe ? "You paid" : "\(friend?.name ?? "Someone") paid"
+    }
+
+    var signedAmount: Decimal {
+        paidByMe ? amount : -amount
+    }
+}
+
+extension Array where Element == Expense {
+    var netBalance: Decimal {
+        reduce(0) { total, expense in
+            guard !expense.isSettled else { return total }
+            return total + (expense.paidByMe ? expense.amount : -expense.amount)
+        }
+    }
 }
