@@ -22,10 +22,12 @@ enum BudgetPeriod: String, Codable, CaseIterable {
 class Budget {
     var amount: Decimal = 0
     var period: BudgetPeriod = BudgetPeriod.week
+    var group: ExpenseGroup?
 
-    init(amount: Decimal, period: BudgetPeriod) {
+    init(amount: Decimal, period: BudgetPeriod, group: ExpenseGroup? = nil) {
         self.amount = amount
         self.period = period
+        self.group = group
     }
 }
 
@@ -37,16 +39,32 @@ func exceededBudgetWarnings(
     expenses: [Expense],
     amount: Decimal,
     date: Date,
+    groupID: PersistentIdentifier? = nil,
     excluding excludedExpenseID: PersistentIdentifier? = nil
 ) -> [String] {
     budgets.compactMap { budget in
-        let interval = budget.period.dateInterval(containing: date)
-        let existingTotal = expenses
-            .filter { $0.persistentModelID != excludedExpenseID && $0.isPersonal && interval.contains($0.date) }
-            .reduce(Decimal(0)) { $0 + $1.amount }
-        let newTotal = existingTotal + amount
-        guard newTotal > budget.amount else { return nil }
-        let over = newTotal - budget.amount
-        return "This exceeds your \(budget.period.rawValue.lowercased())ly budget by \(over.formatted(.currency(code: "NZD")))."
+        let isGlobalBudget = budget.group == nil
+        let matchesGroup = budget.group?.persistentModelID == groupID
+
+        if isGlobalBudget {
+            let interval = budget.period.dateInterval(containing: date)
+            let existingTotal = expenses
+                .filter { $0.persistentModelID != excludedExpenseID && $0.isPersonal && interval.contains($0.date) }
+                .reduce(Decimal(0)) { $0 + $1.amount }
+            let newTotal = existingTotal + amount
+            guard newTotal > budget.amount else { return nil }
+            let over = newTotal - budget.amount
+            return "This exceeds your \(budget.period.rawValue.lowercased())ly budget by \(over.formatted(.currency(code: "NZD")))."
+        } else if matchesGroup, let budgetGroup = budget.group {
+            let interval = budget.period.dateInterval(containing: date)
+            let existingTotal = expenses
+                .filter { $0.persistentModelID != excludedExpenseID && $0.group?.persistentModelID == budgetGroup.persistentModelID && interval.contains($0.date) }
+                .reduce(Decimal(0)) { $0 + $1.amount }
+            let newTotal = existingTotal + amount
+            guard newTotal > budget.amount else { return nil }
+            let over = newTotal - budget.amount
+            return "This exceeds your \(budget.period.rawValue.lowercased())ly \(budgetGroup.name) budget by \(over.formatted(.currency(code: "NZD")))."
+        }
+        return nil
     }
 }

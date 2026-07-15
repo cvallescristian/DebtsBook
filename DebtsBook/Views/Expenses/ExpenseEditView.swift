@@ -9,6 +9,7 @@ struct ExpenseEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Query(sort: \Friend.name) private var friends: [Friend]
+    @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
     @Query private var expenses: [Expense]
     @Query private var budgets: [Budget]
 
@@ -17,6 +18,7 @@ struct ExpenseEditView: View {
     @State private var date: Date
     @State private var isPersonal: Bool
     @State private var friendID: PersistentIdentifier?
+    @State private var groupID: PersistentIdentifier?
     @State private var paidByMe: Bool
     @State private var splitType: SplitType
     @State private var comment: String
@@ -30,9 +32,14 @@ struct ExpenseEditView: View {
         _date = State(initialValue: expense.date)
         _isPersonal = State(initialValue: expense.isPersonal)
         _friendID = State(initialValue: expense.friend?.persistentModelID)
+        _groupID = State(initialValue: expense.group?.persistentModelID)
         _paidByMe = State(initialValue: expense.paidByMe)
         _splitType = State(initialValue: expense.splitType)
         _comment = State(initialValue: expense.comment ?? "")
+    }
+
+    private var selectedGroup: ExpenseGroup? {
+        groups.first { $0.persistentModelID == groupID }
     }
 
     private var selectedFriend: Friend? {
@@ -45,7 +52,7 @@ struct ExpenseEditView: View {
 
     private var budgetWarnings: [String] {
         guard let amount, isPersonal else { return [] }
-        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, excluding: expense.persistentModelID)
+        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, groupID: groupID, excluding: expense.persistentModelID)
     }
 
     var body: some View {
@@ -68,6 +75,17 @@ struct ExpenseEditView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                }
+                if isPersonal && !groups.isEmpty {
+                    Section("Group") {
+                        Picker("Group", selection: $groupID) {
+                            Text("None").tag(nil as PersistentIdentifier?)
+                            ForEach(groups) { group in
+                                Text(group.name)
+                                    .tag(group.persistentModelID as PersistentIdentifier?)
+                            }
+                        }
+                    }
                 }
                 if !isPersonal {
                     Section("Who?") {
@@ -161,6 +179,7 @@ struct ExpenseEditView: View {
         expense.amount = amount
         expense.date = date
         expense.friend = isPersonal ? nil : selectedFriend
+        expense.group = isPersonal ? selectedGroup : nil
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment

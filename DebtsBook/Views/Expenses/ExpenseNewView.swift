@@ -8,6 +8,7 @@ struct ExpenseNewView: View {
     @Environment(\.dismiss) private var dismiss
     
     @Query(sort: \Friend.name) private var friends: [Friend]
+    @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
     @Query private var expenses: [Expense]
     @Query private var budgets: [Budget]
 
@@ -16,6 +17,7 @@ struct ExpenseNewView: View {
     @State private var date: Date = Date()
     @State private var isPersonal: Bool = false
     @State private var friendID: PersistentIdentifier?
+    @State private var groupID: PersistentIdentifier?
     @State private var paidByMe: Bool = true
     @State private var splitType: SplitType = .equally
     @State private var comment: String = ""
@@ -23,6 +25,10 @@ struct ExpenseNewView: View {
 
     init(friend: Friend? = nil) {
         _friendID = State(initialValue: friend?.persistentModelID)
+    }
+
+    private var selectedGroup: ExpenseGroup? {
+        groups.first { $0.persistentModelID == groupID }
     }
 
     private var selectedFriend: Friend? {
@@ -35,7 +41,7 @@ struct ExpenseNewView: View {
 
     private var budgetWarnings: [String] {
         guard let amount, isPersonal else { return [] }
-        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date)
+        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, groupID: groupID)
     }
 
     var body: some View {
@@ -58,6 +64,17 @@ struct ExpenseNewView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                }
+                if isPersonal && !groups.isEmpty {
+                    Section("Group") {
+                        Picker("Group", selection: $groupID) {
+                            Text("None").tag(nil as PersistentIdentifier?)
+                            ForEach(groups) { group in
+                                Text(group.name)
+                                    .tag(group.persistentModelID as PersistentIdentifier?)
+                            }
+                        }
+                    }
                 }
                 if !isPersonal {
                     Section("Who?") {
@@ -129,7 +146,7 @@ struct ExpenseNewView: View {
         guard let amount else { return }
         guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
+        let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, group: isPersonal ? selectedGroup : nil, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
         modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
         dismiss()

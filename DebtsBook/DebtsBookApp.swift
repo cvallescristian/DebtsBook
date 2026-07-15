@@ -7,6 +7,6 @@ struct DebtsBookApp: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: [Friend.self, Expense.self, Activity.self, Budget.self])
+        .modelContainer(for: [Friend.self, Expense.self, Activity.self, Budget.self, ExpenseGroup.self])
     }
 }

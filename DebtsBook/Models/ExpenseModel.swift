@@ -11,14 +11,16 @@ class Expense {
     var date: Date = Date()
 
     var friend: Friend?
+    var group: ExpenseGroup?
     var paidByMe: Bool = true
     var splitType: SplitType = SplitType.equally
     var comment: String?
 
-    init(title: String, amount: Decimal, friend: Friend? = nil, paidByMe: Bool = true, splitType: SplitType = .equally, date: Date = Date(), comment: String? = nil) {
+    init(title: String, amount: Decimal, friend: Friend? = nil, group: ExpenseGroup? = nil, paidByMe: Bool = true, splitType: SplitType = .equally, date: Date = Date(), comment: String? = nil) {
         self.title = title
         self.amount = amount
         self.friend = friend
+        self.group = group
         self.paidByMe = paidByMe
         self.splitType = splitType
         self.date = date

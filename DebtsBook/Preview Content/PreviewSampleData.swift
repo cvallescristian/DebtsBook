@@ -6,7 +6,7 @@ enum PreviewSampleData {
 
     static let container: ModelContainer = {
         let container = try! ModelContainer(
-            for: Friend.self, Expense.self, Activity.self, Budget.self,
+            for: Friend.self, Expense.self, Activity.self, Budget.self, ExpenseGroup.self,
             configurations: .init(isStoredInMemoryOnly: true)
         )
 
@@ -18,7 +18,12 @@ enum PreviewSampleData {
         let groceries = Expense(title: "Groceries", amount: 42.50, friend: cristian, paidByMe: true, comment: "Split for the weekend BBQ")
         let movieTickets = Expense(title: "Movie tickets", amount: 18, friend: cristian, paidByMe: false)
         let dinner = Expense(title: "Dinner", amount: 30, friend: ana, paidByMe: true)
-        let coffee = Expense(title: "Coffee", amount: 5.5)
+        let food = ExpenseGroup(name: "Food")
+        let transport = ExpenseGroup(name: "Transport")
+        container.mainContext.insert(food)
+        container.mainContext.insert(transport)
+
+        let coffee = Expense(title: "Coffee", amount: 5.5, group: food)
         container.mainContext.insert(groceries)
         container.mainContext.insert(movieTickets)
         container.mainContext.insert(dinner)
