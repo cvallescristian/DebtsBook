@@ -19,6 +19,10 @@ private struct RedeemParams: Encodable {
     let invite_code: String
 }
 
+private struct DeletedConnection: Decodable {
+    let id: UUID
+}
+
 @Observable
 final class ConnectService {
     static let shared = ConnectService()
@@ -62,7 +66,17 @@ final class ConnectService {
     func disconnect(friend: Friend) async -> Bool {
         guard let connectionID = friend.connectionID else { return true }
         do {
-            try await client.from("connections").delete().eq("id", value: connectionID).execute()
+            let deleted: [DeletedConnection] = try await client
+                .from("connections")
+                .delete()
+                .eq("id", value: connectionID)
+                .select("id")
+                .execute()
+                .value
+            guard !deleted.isEmpty else {
+                lastError = "Could not disconnect — the connection may have already been removed, or you don't have permission."
+                return false
+            }
             friend.connectionID = nil
             friend.linkedUserID = nil
             await FriendSyncService.shared.push(friend: friend)
