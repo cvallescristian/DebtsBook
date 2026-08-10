@@ -12,6 +12,7 @@ struct FriendView: View {
     @State private var showingFriendNew: Bool = false
     @State private var showingGroupNew: Bool = false
     @State private var showingRedeemInvite: Bool = false
+    @Environment(\.modelContext) private var modelContext
     @Query private var friends: [Friend]
     @Query private var expenses: [Expense]
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
@@ -106,6 +107,9 @@ struct FriendView: View {
             if friends.isEmpty {
                 ContentUnavailableView("No Friends", systemImage: "person.2", description: Text("Tap + to add your first friend."))
             }
+        }
+        .refreshable {
+            await FriendSyncService.shared.pullFriends(into: modelContext)
         }
     }
 

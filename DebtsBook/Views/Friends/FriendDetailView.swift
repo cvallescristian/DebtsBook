@@ -15,6 +15,7 @@ struct FriendDetailView: View {
     @State private var editingExpense: Expense?
     @State private var showingSettleUpConfirmation: Bool = false
     @State private var showingInviteFriend: Bool = false
+    @State private var showingDisconnectConfirmation: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var expenses: [Expense]
@@ -147,8 +148,11 @@ struct FriendDetailView: View {
                         Image(systemName: "person.badge.plus")
                     }
                 } else {
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundStyle(.blue)
+                    Button {
+                        showingDisconnectConfirmation = true
+                    } label: {
+                        Image(systemName: "checkmark.seal.fill")
+                    }
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
@@ -171,15 +175,27 @@ struct FriendDetailView: View {
         .sheet(isPresented: $showingInviteFriend) {
             InviteFriendView(friend: friend, expenses: friendsExpenses)
         }
+        .confirmationModal(
+            isPresented: $showingDisconnectConfirmation,
+            title: "Disconnect from \(friend.name)?",
+            message: "This stops syncing shared expenses between your accounts. You'll each keep your own copy of the history so far.",
+            confirmLabel: "Disconnect",
+            successMessage: "Disconnected from \(friend.name)"
+        ) {
+            Task { await ConnectService.shared.disconnect(friend: friend) }
+        }
         .task {
-            if friend.connectionID != nil {
-                await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
-            }
+            await refreshFromRemote()
         }
         .refreshable {
-            if friend.connectionID != nil {
-                await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
-            }
+            await refreshFromRemote()
+        }
+    }
+
+    private func refreshFromRemote() async {
+        await FriendSyncService.shared.pullFriends(into: modelContext)
+        if friend.connectionID != nil {
+            await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
         }
     }
 

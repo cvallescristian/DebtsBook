@@ -57,6 +57,23 @@ final class ConnectService {
         }
     }
 
+    /// Deletes the shared connection (cascades to its expenses in Supabase) and clears the
+    /// local link. Each side keeps their own copy of the expense history synced so far.
+    func disconnect(friend: Friend) async -> Bool {
+        guard let connectionID = friend.connectionID else { return true }
+        do {
+            try await client.from("connections").delete().eq("id", value: connectionID).execute()
+            friend.connectionID = nil
+            friend.linkedUserID = nil
+            await FriendSyncService.shared.push(friend: friend)
+            lastError = nil
+            return true
+        } catch {
+            lastError = error.localizedDescription
+            return false
+        }
+    }
+
     func redeemInvite(code: String) async -> Bool {
         do {
             try await client.rpc("redeem_invite", params: RedeemParams(invite_code: code)).execute()
