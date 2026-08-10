@@ -6,13 +6,30 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		40473F7C3029586D001639B7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 40473F7B3029586D001639B7 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		40A4BF222FFF179300E9206F /* DebtsBook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DebtsBook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		40473F7D30295BCF001639B7 /* Exceptions for "DebtsBook" folder in "DebtsBook" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 40A4BF212FFF179300E9206F /* DebtsBook */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		40A4BF242FFF179300E9206F /* DebtsBook */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				40473F7D30295BCF001639B7 /* Exceptions for "DebtsBook" folder in "DebtsBook" target */,
+			);
 			path = DebtsBook;
 			sourceTree = "<group>";
 		};
@@ -23,16 +40,25 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				40473F7C3029586D001639B7 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		40473F7A30295817001639B7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		40A4BF192FFF179300E9206F = {
 			isa = PBXGroup;
 			children = (
 				40A4BF242FFF179300E9206F /* DebtsBook */,
+				40473F7A30295817001639B7 /* Frameworks */,
 				40A4BF232FFF179300E9206F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,6 +91,7 @@
 			);
 			name = DebtsBook;
 			packageProductDependencies = (
+				40473F7B3029586D001639B7 /* Supabase */,
 			);
 			productName = DebtsBook;
 			productReference = 40A4BF222FFF179300E9206F /* DebtsBook.app */;
@@ -94,6 +121,9 @@
 			);
 			mainGroup = 40A4BF192FFF179300E9206F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				40473F7930294E0F001639B7 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 40A4BF232FFF179300E9206F /* Products */;
 			projectDirPath = "";
@@ -256,6 +286,7 @@
 				DEVELOPMENT_TEAM = 287AK8V53X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DebtsBook/Info.plist;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -289,6 +320,7 @@
 				DEVELOPMENT_TEAM = 287AK8V53X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DebtsBook/Info.plist;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -334,6 +366,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		40473F7930294E0F001639B7 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		40473F7B3029586D001639B7 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40473F7930294E0F001639B7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 40A4BF1A2FFF179300E9206F /* Project object */;
 }
