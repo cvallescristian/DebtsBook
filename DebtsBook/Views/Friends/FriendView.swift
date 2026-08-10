@@ -11,6 +11,7 @@ struct FriendView: View {
     @State private var selectedTab: FriendTab = .friends
     @State private var showingFriendNew: Bool = false
     @State private var showingGroupNew: Bool = false
+    @State private var showingRedeemInvite: Bool = false
     @Query private var friends: [Friend]
     @Query private var expenses: [Expense]
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
@@ -42,14 +43,25 @@ struct FriendView: View {
             }
             .navigationTitle(selectedTab.rawValue)
             .toolbar {
-                Button {
+                ToolbarItem(placement: .topBarLeading) {
                     if selectedTab == .friends {
-                        showingFriendNew = true
-                    } else {
-                        showingGroupNew = true
+                        Button {
+                            showingRedeemInvite = true
+                        } label: {
+                            Image(systemName: "qrcode")
+                        }
                     }
-                } label: {
-                    Image(systemName: "plus")
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        if selectedTab == .friends {
+                            showingFriendNew = true
+                        } else {
+                            showingGroupNew = true
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .sheet(isPresented: $showingFriendNew) {
@@ -57,6 +69,9 @@ struct FriendView: View {
             }
             .sheet(isPresented: $showingGroupNew) {
                 GroupNewView()
+            }
+            .sheet(isPresented: $showingRedeemInvite) {
+                RedeemInviteView()
             }
         }
     }
@@ -69,6 +84,11 @@ struct FriendView: View {
                 } label: {
                     HStack {
                         Text(friend.name)
+                        if friend.connectionID != nil {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(.blue)
+                                .font(.caption)
+                        }
                         Spacer()
                         if balance(for: friend) == 0 {
                             Label("Settled up", systemImage: "hand.thumbsup.fill")

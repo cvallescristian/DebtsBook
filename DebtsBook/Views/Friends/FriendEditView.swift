@@ -72,10 +72,12 @@ struct FriendEditView: View {
 
     private func save() {
         friend.name = name
+        Task { await FriendSyncService.shared.push(friend: friend) }
         dismiss()
     }
 
     private func delete() {
+        Task { await FriendSyncService.shared.delete(friend: friend) }
         modelContext.delete(friend)
     }
 }

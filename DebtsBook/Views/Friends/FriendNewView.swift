@@ -43,6 +43,7 @@ struct FriendNewView: View {
     private func save() {
         let friend = Friend(name: name)
         modelContext.insert(friend)
+        Task { await FriendSyncService.shared.push(friend: friend) }
         dismiss()
     }
 }
