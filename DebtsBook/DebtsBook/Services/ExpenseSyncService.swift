@@ -33,6 +33,11 @@ final class ExpenseSyncService {
     private let client = SupabaseManager.shared.client
     var lastError: String?
 
+    /// remoteIDs currently mid-upload via push(). Excluded from the reconcile-delete pass in
+    /// pullExpenses so a pull racing a not-yet-uploaded create can't delete it out from under
+    /// the in-flight push (which would then crash reading properties off the deleted model).
+    private var pendingPushIDs: Set<UUID> = []
+
     private init() {}
 
     func pullExpenses(into context: ModelContext, for friend: Friend) async {
@@ -86,8 +91,11 @@ final class ExpenseSyncService {
             // this friend that's no longer in the fresh fetch was deleted (or belongs to a
             // now-dead connection) and should disappear locally too.
             let remoteIDs = Set(remoteExpenses.map { $0.id })
-            for expense in friendsSyncedExpenses where !remoteIDs.contains(expense.remoteID!) {
-                context.delete(expense)
+            for expense in friendsSyncedExpenses {
+                let expenseRemoteID = expense.remoteID!
+                if !remoteIDs.contains(expenseRemoteID) && !pendingPushIDs.contains(expenseRemoteID) {
+                    context.delete(expense)
+                }
             }
 
             lastError = nil
@@ -113,6 +121,8 @@ final class ExpenseSyncService {
             comment: expense.comment,
             date: expense.date
         )
+        pendingPushIDs.insert(remoteID)
+        defer { pendingPushIDs.remove(remoteID) }
         do {
             try await client.from("expenses").upsert(upsert).execute()
             lastError = nil
