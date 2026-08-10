@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import Auth
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
 
@@ -10,6 +11,10 @@ struct ProfileView: View {
     @State private var showingDeleteExpensesConfirmation = false
     @State private var showingResetAppConfirmation = false
     @State private var authService = AuthService.shared
+    @State private var exportURL: URL?
+    @State private var showingImporter = false
+    @State private var importResultMessage: String?
+    @State private var showingImportResult = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +39,25 @@ struct ProfileView: View {
                 }
                 Section("Security") {
                     Toggle("Require Face ID", isOn: $requireFaceID)
+                }
+                Section {
+                    if let exportURL {
+                        ShareLink(item: exportURL) {
+                            Label("Export Data", systemImage: "square.and.arrow.up")
+                        }
+                    } else {
+                        Label("Preparing export…", systemImage: "square.and.arrow.up")
+                            .foregroundStyle(.secondary)
+                    }
+                    Button {
+                        showingImporter = true
+                    } label: {
+                        Label("Import Data", systemImage: "square.and.arrow.down")
+                    }
+                } header: {
+                    Text("Backup")
+                } footer: {
+                    Text("Export saves a JSON file with all your friends, expenses, groups, budgets, and activity. Import adds records from a previously exported file.")
                 }
                 Section {
                     Button("Delete All Expenses", role: .destructive) {
@@ -65,6 +89,28 @@ struct ProfileView: View {
                 successMessage: "App reset"
             ) {
                 resetApp()
+            }
+            .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
+                switch result {
+                case .success(let url):
+                    do {
+                        try BackupService.importData(from: url, into: modelContext)
+                        importResultMessage = "Import complete."
+                    } catch {
+                        importResultMessage = "Import failed: \(error.localizedDescription)"
+                    }
+                case .failure(let error):
+                    importResultMessage = "Import failed: \(error.localizedDescription)"
+                }
+                showingImportResult = true
+            }
+            .alert("Import Data", isPresented: $showingImportResult) {
+                Button("OK") {}
+            } message: {
+                Text(importResultMessage ?? "")
+            }
+            .task {
+                exportURL = try? BackupService.exportData(context: modelContext)
             }
             .navigationTitle("Profile")
         }
