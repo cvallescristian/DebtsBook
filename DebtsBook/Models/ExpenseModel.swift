@@ -11,7 +11,9 @@ class Expense {
     var date: Date = Date()
     var remoteID: UUID?
 
+    @Relationship(deleteRule: .nullify)
     var friend: Friend?
+    @Relationship(deleteRule: .nullify)
     var group: ExpenseGroup?
     var paidByMe: Bool = true
     var splitType: SplitType = SplitType.equally
