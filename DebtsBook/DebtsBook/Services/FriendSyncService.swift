@@ -41,11 +41,17 @@ final class FriendSyncService {
                 friend.remoteID.map { ($0, friend) }
             })
 
+            var newlyLinkedFriends: [Friend] = []
+
             for remote in remoteFriends {
                 if let local = byRemoteID[remote.id] {
+                    let hadLinkedUser = local.linkedUserID != nil
                     local.name = remote.name
                     local.linkedUserID = remote.linked_user_id
                     local.connectionID = remote.connection_id
+                    if !hadLinkedUser && local.linkedUserID != nil {
+                        newlyLinkedFriends.append(local)
+                    }
                 } else {
                     let friend = Friend(name: remote.name)
                     friend.remoteID = remote.id
@@ -55,6 +61,19 @@ final class FriendSyncService {
                 }
             }
             lastError = nil
+
+            // A friend's linkedUserID resolving for the first time means a pending invite
+            // just got redeemed. Any expense pushed before that point (the history transfer
+            // at invite-creation, or any "friend paid" expense pushed while still pending)
+            // went out with an unresolved paid_by_user_id — re-push everything for that
+            // friend now that the connection is fully established to correct it.
+            if !newlyLinkedFriends.isEmpty {
+                let allExpenses = try context.fetch(FetchDescriptor<Expense>())
+                for friend in newlyLinkedFriends {
+                    let friendExpenses = allExpenses.filter { $0.friend?.persistentModelID == friend.persistentModelID }
+                    await ExpenseSyncService.shared.pushAll(for: friend, expenses: friendExpenses)
+                }
+            }
         } catch {
             lastError = error.localizedDescription
         }

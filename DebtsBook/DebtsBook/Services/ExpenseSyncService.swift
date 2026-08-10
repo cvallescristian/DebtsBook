@@ -14,6 +14,11 @@ private struct RemoteExpense: Decodable {
     let date: Date
 }
 
+private struct ConnectionMembers: Decodable {
+    let user_a: UUID
+    let user_b: UUID?
+}
+
 private struct ExpenseUpsert: Encodable {
     let id: UUID
     let connection_id: UUID
@@ -104,12 +109,32 @@ final class ExpenseSyncService {
         }
     }
 
+    /// Resolves the other member of a connection directly from the `connections` table —
+    /// the single source of truth for who's actually in it — rather than trusting a
+    /// locally-cached `linkedUserID` that can go stale (e.g. before the invite is redeemed,
+    /// or if a prior sync bug left it wrong). Returns nil if the connection has no second
+    /// member yet (not redeemed).
+    private func resolveOtherMember(of connectionID: UUID, excluding currentUserID: UUID) async -> UUID? {
+        do {
+            let members: ConnectionMembers = try await client
+                .from("connections")
+                .select("user_a, user_b")
+                .eq("id", value: connectionID)
+                .single()
+                .execute()
+                .value
+            return members.user_a == currentUserID ? members.user_b : members.user_a
+        } catch {
+            return nil
+        }
+    }
+
     func push(expense: Expense) async {
         guard let connectionID = expense.friend?.connectionID else { return }
         guard let currentUserID = AuthService.shared.session?.user.id else { return }
         let remoteID = expense.remoteID ?? UUID()
         expense.remoteID = remoteID
-        let paidByUserID = expense.paidByMe ? currentUserID : expense.friend?.linkedUserID
+        let paidByUserID = expense.paidByMe ? currentUserID : await resolveOtherMember(of: connectionID, excluding: currentUserID)
         let upsert = ExpenseUpsert(
             id: remoteID,
             connection_id: connectionID,

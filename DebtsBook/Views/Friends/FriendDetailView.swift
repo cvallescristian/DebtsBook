@@ -193,18 +193,12 @@ struct FriendDetailView: View {
     }
 
     private func refreshFromRemote() async {
-        let hadLinkedUser = friend.linkedUserID != nil
+        // pullFriends also detects a friend's linkedUserID newly resolving (their invite
+        // just got redeemed) and re-pushes that friend's expenses to fix up any that went
+        // out before the connection was fully established.
         await FriendSyncService.shared.pullFriends(into: modelContext)
         if friend.connectionID != nil {
             await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
-
-            // A history transfer (pushAll at invite-creation time) always happens before
-            // the other side redeems, so any pre-existing "friend paid" expense gets pushed
-            // with a null paid_by_user_id (the friend's real ID isn't known yet at that
-            // point). Once linkedUserID newly resolves, re-push everything to fix that up.
-            if !hadLinkedUser && friend.linkedUserID != nil {
-                await ExpenseSyncService.shared.pushAll(for: friend, expenses: friendsExpenses)
-            }
         }
     }
 
