@@ -78,7 +78,7 @@ private func toggleSettled(for expense: Expense, in modelContext: ModelContext) 
         expense.isSettled = true
         modelContext.insert(Activity(type: .paid, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: expense.friend))
     }
-    if expense.friend?.connectionID != nil {
+    if expense.friend?.linkedUserID != nil {
         Task { await ExpenseSyncService.shared.push(expense: expense) }
     }
 }

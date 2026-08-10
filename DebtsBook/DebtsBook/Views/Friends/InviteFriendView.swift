@@ -4,7 +4,6 @@ import SwiftData
 struct InviteFriendView: View {
 
     let friend: Friend
-    let expenses: [Expense]
 
     @Environment(\.dismiss) private var dismiss
     @State private var code: String?
@@ -47,7 +46,7 @@ struct InviteFriendView: View {
                 }
             }
             .task {
-                code = await ConnectService.shared.createInvite(for: friend, expenses: expenses)
+                code = await ConnectService.shared.createInvite(for: friend)
                 errorMessage = ConnectService.shared.lastError
                 isLoading = false
             }
@@ -57,6 +56,6 @@ struct InviteFriendView: View {
 
 
 #Preview {
-    InviteFriendView(friend: PreviewSampleData.friend, expenses: [])
+    InviteFriendView(friend: PreviewSampleData.friend)
         .modelContainer(PreviewSampleData.container)
 }

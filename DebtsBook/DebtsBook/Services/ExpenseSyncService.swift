@@ -46,7 +46,10 @@ final class ExpenseSyncService {
     private init() {}
 
     func pullExpenses(into context: ModelContext, for friend: Friend) async {
-        guard let connectionID = friend.connectionID else { return }
+        // Require linkedUserID (not just connectionID) — a pending, not-yet-accepted
+        // invite has nothing to pull yet, and pulling early risks reconciling against an
+        // empty result before history is ever transferred.
+        guard friend.linkedUserID != nil, let connectionID = friend.connectionID else { return }
         guard let currentUserID = AuthService.shared.session?.user.id else { return }
         do {
             let remoteExpenses: [RemoteExpense] = try await client
@@ -130,6 +133,11 @@ final class ExpenseSyncService {
     }
 
     func push(expense: Expense) async {
+        // Require linkedUserID (not just connectionID) — while the invite is still
+        // pending, the friend's real ID doesn't exist anywhere yet, so any "friend paid"
+        // expense would resolve to an unknown payer. Wait until accepted; pullFriends
+        // pushes everything in one go the moment that happens.
+        guard expense.friend?.linkedUserID != nil else { return }
         guard let connectionID = expense.friend?.connectionID else { return }
         guard let currentUserID = AuthService.shared.session?.user.id else { return }
         let remoteID = expense.remoteID ?? UUID()

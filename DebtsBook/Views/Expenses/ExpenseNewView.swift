@@ -149,7 +149,7 @@ struct ExpenseNewView: View {
         let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, group: isPersonal ? selectedGroup : nil, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
         modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
-        if expense.friend?.connectionID != nil {
+        if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.push(expense: expense) }
         }
         dismiss()

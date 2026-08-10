@@ -32,9 +32,13 @@ final class ConnectService {
 
     private init() {}
 
-    /// Creates (or reuses) the shared connection for `friend`, transfers their existing
-    /// expense history into it, and returns a redeemable invite code.
-    func createInvite(for friend: Friend, expenses: [Expense]) async -> String? {
+    /// Creates (or reuses) the shared connection for `friend` and returns a redeemable
+    /// invite code. Expense history is deliberately NOT transferred yet — the other person
+    /// hasn't redeemed the code, so their real account ID doesn't exist anywhere yet, and
+    /// any "friend paid" expense pushed now would resolve to an unknown payer. Once they
+    /// redeem, FriendSyncService.pullFriends notices the connection just became accepted
+    /// (linkedUserID resolves) and pushes the full history at that point instead.
+    func createInvite(for friend: Friend) async -> String? {
         guard let userID = AuthService.shared.session?.user.id else { return nil }
         do {
             let connectionID: UUID
@@ -48,7 +52,6 @@ final class ConnectService {
             }
 
             await FriendSyncService.shared.push(friend: friend)
-            await ExpenseSyncService.shared.pushAll(for: friend, expenses: expenses)
 
             let code = Self.generateCode()
             let invite = InviteInsert(code: code, inviter_id: userID, connection_id: connectionID, expires_at: Date().addingTimeInterval(60 * 60 * 24))

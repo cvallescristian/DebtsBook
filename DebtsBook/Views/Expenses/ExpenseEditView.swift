@@ -184,7 +184,7 @@ struct ExpenseEditView: View {
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
         modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
-        if expense.friend?.connectionID != nil {
+        if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.push(expense: expense) }
         }
         dismiss()
@@ -192,7 +192,7 @@ struct ExpenseEditView: View {
 
     private func delete() {
         modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
-        if expense.friend?.connectionID != nil {
+        if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.delete(expense: expense) }
         }
         modelContext.delete(expense)

@@ -173,7 +173,7 @@ struct FriendDetailView: View {
             ExpenseEditView(expense: expense)
         }
         .sheet(isPresented: $showingInviteFriend) {
-            InviteFriendView(friend: friend, expenses: friendsExpenses)
+            InviteFriendView(friend: friend)
         }
         .confirmationModal(
             isPresented: $showingDisconnectConfirmation,
@@ -197,14 +197,14 @@ struct FriendDetailView: View {
         // just got redeemed) and re-pushes that friend's expenses to fix up any that went
         // out before the connection was fully established.
         await FriendSyncService.shared.pullFriends(into: modelContext)
-        if friend.connectionID != nil {
+        if friend.linkedUserID != nil {
             await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
         }
     }
 
     private func settleUp() {
         let settledAmount = balance
-        let isConnected = friend.connectionID != nil
+        let isConnected = friend.linkedUserID != nil
         for expense in friendsExpenses where !expense.isSettled {
             expense.isSettled = true
             if isConnected {
