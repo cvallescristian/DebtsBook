@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Auth
 
 struct ProfileView: View {
 
@@ -8,10 +9,20 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showingDeleteExpensesConfirmation = false
     @State private var showingResetAppConfirmation = false
+    @State private var authService = AuthService.shared
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Account") {
+                    if let email = authService.session?.user.email {
+                        Text(email)
+                            .foregroundStyle(.secondary)
+                    }
+                    Button("Sign Out", role: .destructive) {
+                        Task { await authService.signOut() }
+                    }
+                }
                 Section("Appearance") {
                     Picker("Appearance", selection: $appearanceMode) {
                         ForEach(AppearanceMode.allCases) { mode in
