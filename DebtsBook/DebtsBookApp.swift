@@ -3,6 +3,15 @@ import SwiftData
 
 @main
 struct DebtsBookApp: App {
+
+    private let container: ModelContainer
+
+    init() {
+        let container = try! ModelContainer(for: Friend.self, Expense.self, Activity.self, Budget.self, ExpenseGroup.self)
+        DataIntegrityService.repairDanglingRelationships(context: container.mainContext)
+        self.container = container
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -10,6 +19,6 @@ struct DebtsBookApp: App {
                     AuthService.shared.handle(url: url)
                 }
         }
-        .modelContainer(for: [Friend.self, Expense.self, Activity.self, Budget.self, ExpenseGroup.self])
+        .modelContainer(container)
     }
 }

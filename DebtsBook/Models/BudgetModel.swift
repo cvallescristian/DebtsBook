@@ -22,6 +22,7 @@ enum BudgetPeriod: String, Codable, CaseIterable {
 class Budget {
     var amount: Decimal = 0
     var period: BudgetPeriod = BudgetPeriod.week
+    @Relationship(deleteRule: .nullify)
     var group: ExpenseGroup?
 
     init(amount: Decimal, period: BudgetPeriod, group: ExpenseGroup? = nil) {
