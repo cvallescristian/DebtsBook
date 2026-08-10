@@ -137,6 +137,13 @@ enum BackupService {
     /// Imports records from a previously exported JSON file, adding them as new local
     /// records alongside whatever's already in the store.
     static func importData(from url: URL, into context: ModelContext) throws {
+        let didStartAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if didStartAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
