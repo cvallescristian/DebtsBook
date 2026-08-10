@@ -69,7 +69,7 @@ struct ProfileView: View {
                 } header: {
                     Text("Danger Zone")
                 } footer: {
-                    Text("Deleting all expenses also deletes their activity. Resetting the app permanently deletes all friends, expenses, and activity.")
+                    Text("Deleting all expenses also deletes their activity. Resetting the app permanently deletes all friends, groups, budgets, expenses, and activity.")
                 }
             }
             .confirmationModal(
@@ -125,6 +125,7 @@ struct ProfileView: View {
         deleteAll(Expense.self)
         deleteAll(Activity.self)
         deleteAll(Friend.self)
+        deleteAll(ExpenseGroup.self)
         deleteAll(Budget.self)
     }
 
