@@ -47,7 +47,10 @@ final class ExpenseSyncService {
                 .value
 
             let existing = try context.fetch(FetchDescriptor<Expense>())
-            let byRemoteID = Dictionary(uniqueKeysWithValues: existing.compactMap { expense in
+            let friendsSyncedExpenses = existing.filter {
+                $0.friend?.persistentModelID == friend.persistentModelID && $0.remoteID != nil
+            }
+            let byRemoteID = Dictionary(uniqueKeysWithValues: friendsSyncedExpenses.compactMap { expense in
                 expense.remoteID.map { ($0, expense) }
             })
 
@@ -78,6 +81,15 @@ final class ExpenseSyncService {
                     context.insert(expense)
                 }
             }
+
+            // Server is authoritative for synced expenses: anything previously synced for
+            // this friend that's no longer in the fresh fetch was deleted (or belongs to a
+            // now-dead connection) and should disappear locally too.
+            let remoteIDs = Set(remoteExpenses.map { $0.id })
+            for expense in friendsSyncedExpenses where !remoteIDs.contains(expense.remoteID!) {
+                context.delete(expense)
+            }
+
             lastError = nil
         } catch {
             lastError = error.localizedDescription
