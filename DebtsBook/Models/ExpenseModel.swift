@@ -9,6 +9,7 @@ class Expense {
     var isSettled: Bool = false
     var createdAt: Date = Date()
     var date: Date = Date()
+    var remoteID: UUID?
 
     var friend: Friend?
     var group: ExpenseGroup?

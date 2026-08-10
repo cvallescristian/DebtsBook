@@ -14,6 +14,7 @@ struct FriendDetailView: View {
     @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
     @State private var showingSettleUpConfirmation: Bool = false
+    @State private var showingInviteFriend: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var expenses: [Expense]
@@ -138,10 +139,24 @@ struct FriendDetailView: View {
         }
         .navigationTitle(friend.name)
         .toolbar {
-            Button {
-                showingFriendEdit = true
-            } label: {
-                Image(systemName: "square.and.pencil")
+            ToolbarItem(placement: .topBarLeading) {
+                if friend.connectionID == nil {
+                    Button {
+                        showingInviteFriend = true
+                    } label: {
+                        Image(systemName: "person.badge.plus")
+                    }
+                } else {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(.blue)
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    showingFriendEdit = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
             }
         }
         .sheet(isPresented: $showingFriendEdit){
@@ -153,12 +168,29 @@ struct FriendDetailView: View {
         .sheet(item: $editingExpense) { expense in
             ExpenseEditView(expense: expense)
         }
+        .sheet(isPresented: $showingInviteFriend) {
+            InviteFriendView(friend: friend, expenses: friendsExpenses)
+        }
+        .task {
+            if friend.connectionID != nil {
+                await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
+            }
+        }
+        .refreshable {
+            if friend.connectionID != nil {
+                await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
+            }
+        }
     }
 
     private func settleUp() {
         let settledAmount = balance
+        let isConnected = friend.connectionID != nil
         for expense in friendsExpenses where !expense.isSettled {
             expense.isSettled = true
+            if isConnected {
+                Task { await ExpenseSyncService.shared.push(expense: expense) }
+            }
         }
         modelContext.insert(Activity(type: .settledUp, expenseTitle: "", friendName: friend.name, amount: abs(settledAmount), paidByMe: settledAmount > 0, friend: friend))
     }
