@@ -12,16 +12,35 @@ struct RedeemInviteView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
+                Spacer()
+
+                Image(systemName: "person.badge.key.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+
+                Text("Enter Invite Code")
+                    .font(.title2.bold())
+
+                Text("Paste the code your friend shared with you to connect your accounts and sync expenses.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
                 TextField("Invite Code", text: $code)
-                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .font(.title3.weight(.medium).monospaced())
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
+                    .authFieldStyle()
+                    .padding(.top, 8)
 
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
 
                 Button {
@@ -34,10 +53,13 @@ struct RedeemInviteView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .disabled(code.isEmpty || isRedeeming)
+
+                Spacer()
+                Spacer()
             }
             .padding()
-            .navigationTitle("Enter Invite Code")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
