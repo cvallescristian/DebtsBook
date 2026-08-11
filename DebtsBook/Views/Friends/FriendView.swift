@@ -12,6 +12,8 @@ struct FriendView: View {
     @State private var showingFriendNew: Bool = false
     @State private var showingGroupNew: Bool = false
     @State private var showingRedeemInvite: Bool = false
+    @State private var showingSignInRequired: Bool = false
+    var authService = AuthService.shared
     @Environment(\.modelContext) private var modelContext
     @Query private var friends: [Friend]
     @Query private var expenses: [Expense]
@@ -47,9 +49,13 @@ struct FriendView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     if selectedTab == .friends {
                         Button {
-                            showingRedeemInvite = true
+                            if authService.isSignedIn {
+                                showingRedeemInvite = true
+                            } else {
+                                showingSignInRequired = true
+                            }
                         } label: {
-                            Image(systemName: "qrcode")
+                            Image(systemName: "link.circle")
                         }
                     }
                 }
@@ -74,6 +80,9 @@ struct FriendView: View {
             .sheet(isPresented: $showingRedeemInvite) {
                 RedeemInviteView()
             }
+            .sheet(isPresented: $showingSignInRequired) {
+                SignInRequiredView()
+            }
         }
     }
 
@@ -86,7 +95,7 @@ struct FriendView: View {
                     HStack {
                         Text(friend.name)
                         if friend.connectionID != nil {
-                            Image(systemName: "checkmark.seal.fill")
+                            Image(systemName: "link.circle.fill")
                                 .foregroundStyle(.blue)
                                 .font(.caption)
                         }

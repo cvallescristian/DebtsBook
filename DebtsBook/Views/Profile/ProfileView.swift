@@ -15,17 +15,28 @@ struct ProfileView: View {
     @State private var showingImporter = false
     @State private var importResultMessage: String?
     @State private var showingImportResult = false
+    @State private var showingSignIn = false
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Account") {
+                Section {
                     if let email = authService.session?.user.email {
                         Text(email)
                             .foregroundStyle(.secondary)
+                        Button("Sign Out", role: .destructive) {
+                            Task { await authService.signOut() }
+                        }
+                    } else {
+                        Button("Sign In") {
+                            showingSignIn = true
+                        }
                     }
-                    Button("Sign Out", role: .destructive) {
-                        Task { await authService.signOut() }
+                } header: {
+                    Text("Account")
+                } footer: {
+                    if authService.session == nil {
+                        Text("Sign in to connect and share expenses with friends who also use DebtsBook.")
                     }
                 }
                 Section("Appearance") {
@@ -111,6 +122,9 @@ struct ProfileView: View {
             }
             .task {
                 exportURL = try? BackupService.exportData(context: modelContext)
+            }
+            .sheet(isPresented: $showingSignIn) {
+                SignInRequiredView()
             }
             .navigationTitle("Profile")
         }
