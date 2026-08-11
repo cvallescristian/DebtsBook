@@ -14,6 +14,7 @@ final class AuthService: NSObject {
 
     var session: Session?
     var lastError: String?
+    var isRestoringSession = true
 
     var isSignedIn: Bool { session != nil }
 
@@ -27,6 +28,7 @@ final class AuthService: NSObject {
 
     private func restoreSession() async {
         session = try? await client.auth.session
+        isRestoringSession = false
     }
 
     func signInWithMagicLink(email: String) async {

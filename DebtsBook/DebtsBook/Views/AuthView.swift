@@ -6,7 +6,6 @@ struct AuthView: View {
     @State private var isSending = false
     @State private var linkSent = false
     @State private var errorMessage: String?
-    @State private var isSigningInWithApple = false
     @State private var code: String = ""
     @State private var isVerifyingCode = false
     private var authService = AuthService.shared
@@ -21,17 +20,17 @@ struct AuthView: View {
                 .font(.title2.bold())
 
             if linkSent {
-                Text("Check \(email) for a 6-digit code (or a sign-in link).")
+                Text("Check \(email) for a 8-digit code (or a sign-in link).")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
-                TextField("6-digit code", text: $code)
-                    .textFieldStyle(.roundedBorder)
+                TextField("8-digit code", text: $code)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .font(.title3.weight(.medium))
+                    .authFieldStyle()
 
                 if let callbackError = authService.lastError {
                     Text(callbackError)
@@ -60,35 +59,12 @@ struct AuthView: View {
                 }
                 .buttonStyle(.bordered)
             } else {
-                Button {
-                    signInWithApple()
-                } label: {
-                    if isSigningInWithApple {
-                        ProgressView().tint(.white)
-                    } else {
-                        Label("Sign in with Apple", systemImage: "apple.logo")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.black)
-                .controlSize(.large)
-                .disabled(isSigningInWithApple)
-                .padding(.horizontal)
-
-                HStack {
-                    Rectangle().frame(height: 1).foregroundStyle(.tertiary)
-                    Text("or").font(.footnote).foregroundStyle(.secondary)
-                    Rectangle().frame(height: 1).foregroundStyle(.tertiary)
-                }
-                .padding(.horizontal)
-
                 TextField("Email", text: $email)
-                    .textFieldStyle(.roundedBorder)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .padding(.horizontal)
+                    .authFieldStyle()
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -113,18 +89,6 @@ struct AuthView: View {
             }
         }
         .padding()
-    }
-
-    private func signInWithApple() {
-        errorMessage = nil
-        isSigningInWithApple = true
-        Task {
-            await authService.signInWithApple()
-            isSigningInWithApple = false
-            if let error = authService.lastError {
-                errorMessage = error
-            }
-        }
     }
 
     private func verifyCode() {

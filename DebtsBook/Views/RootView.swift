@@ -12,8 +12,8 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if !authService.isSignedIn {
-                AuthView()
+            if authService.isRestoringSession {
+                LaunchLoadingView()
             } else if requireFaceID && !isUnlocked {
                 LockScreenView(onUnlock: { isUnlocked = true })
             } else {
