@@ -66,7 +66,7 @@ final class ConnectService {
 
     /// Deletes the shared connection (cascades to its expenses in Supabase) and clears the
     /// local link. Each side keeps their own copy of the expense history synced so far.
-    func disconnect(friend: Friend) async -> Bool {
+    func disconnect(friend: Friend, context: ModelContext) async -> Bool {
         guard let connectionID = friend.connectionID else { return true }
         do {
             let deleted: [DeletedConnection] = try await client
@@ -83,6 +83,15 @@ final class ConnectService {
             friend.connectionID = nil
             friend.linkedUserID = nil
             await FriendSyncService.shared.push(friend: friend)
+            // The remote rows just got cascade-deleted along with the connection, so any
+            // remoteID pointing at them is now stale. Clear it so a future reconnect treats
+            // this history as unsynced instead of reusing dead remote IDs — reusing them let
+            // a racing pullExpenses see "remoteID set but not found remotely" and delete the
+            // local expense before the reconnect's push had a chance to land.
+            let expenses = (try? context.fetch(FetchDescriptor<Expense>())) ?? []
+            for expense in expenses where expense.friend?.persistentModelID == friend.persistentModelID {
+                expense.remoteID = nil
+            }
             lastError = nil
             return true
         } catch {

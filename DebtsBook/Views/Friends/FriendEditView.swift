@@ -77,8 +77,13 @@ struct FriendEditView: View {
     }
 
     private func delete() {
-        Task { await FriendSyncService.shared.delete(friend: friend) }
-        modelContext.delete(friend)
+        Task {
+            if friend.connectionID != nil {
+                _ = await ConnectService.shared.disconnect(friend: friend, context: modelContext)
+            }
+            await FriendSyncService.shared.delete(friend: friend)
+            modelContext.delete(friend)
+        }
     }
 }
 

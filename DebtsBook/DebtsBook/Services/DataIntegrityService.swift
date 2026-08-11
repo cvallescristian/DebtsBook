@@ -37,6 +37,15 @@ enum DataIntegrityService {
             }
         }
 
+        // A disconnect that ran before ConnectService started clearing linkedUserID
+        // alongside connectionID could leave a friend "half disconnected": no active
+        // connection, but still flagged as linked — which made push/pull guards and the
+        // "hasn't synced yet" banner treat it as connected. Reconcile that here too.
+        let friends = (try? context.fetch(FetchDescriptor<Friend>())) ?? []
+        for friend in friends where friend.connectionID == nil && friend.linkedUserID != nil {
+            friend.linkedUserID = nil
+        }
+
         let activities = (try? context.fetch(FetchDescriptor<Activity>())) ?? []
         let validExpenseIDs = Set(expenses.map(\.persistentModelID))
         for activity in activities {

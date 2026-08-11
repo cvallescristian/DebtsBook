@@ -16,6 +16,9 @@ struct FriendDetailView: View {
     @State private var showingSettleUpConfirmation: Bool = false
     @State private var showingInviteFriend: Bool = false
     @State private var showingDisconnectConfirmation: Bool = false
+    @State private var showingSignInRequired: Bool = false
+    @State private var isSyncingExpenses: Bool = false
+    var authService = AuthService.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var expenses: [Expense]
@@ -39,6 +42,10 @@ struct FriendDetailView: View {
 
     private var hasUnsettledExpenses: Bool {
         friendsExpenses.contains { !$0.isSettled }
+    }
+
+    private var hasUnsyncedExpenses: Bool {
+        friend.connectionID != nil && friend.linkedUserID != nil && friendsExpenses.contains { $0.remoteID == nil }
     }
 
     var body: some View {
@@ -74,6 +81,27 @@ struct FriendDetailView: View {
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+
+            if hasUnsyncedExpenses {
+                Button {
+                    syncExpenses()
+                } label: {
+                    HStack {
+                        if isSyncingExpenses {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                        }
+                        Text(isSyncingExpenses ? "Syncing…" : "The expenses haven't synced yet. Tap to sync.")
+                            .font(.subheadline)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isSyncingExpenses)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
 
             Picker("View", selection: $selectedTab) {
                 ForEach(FriendDetailTab.allCases, id: \.self) { tab in
@@ -143,7 +171,11 @@ struct FriendDetailView: View {
             ToolbarItem(placement: .topBarLeading) {
                 if friend.connectionID == nil {
                     Button {
-                        showingInviteFriend = true
+                        if authService.isSignedIn {
+                            showingInviteFriend = true
+                        } else {
+                            showingSignInRequired = true
+                        }
                     } label: {
                         Image(systemName: "person.badge.plus")
                     }
@@ -151,7 +183,7 @@ struct FriendDetailView: View {
                     Button {
                         showingDisconnectConfirmation = true
                     } label: {
-                        Image(systemName: "checkmark.seal.fill")
+                        Image(systemName: "link.circle.fill")
                     }
                 }
             }
@@ -175,6 +207,9 @@ struct FriendDetailView: View {
         .sheet(isPresented: $showingInviteFriend) {
             InviteFriendView(friend: friend)
         }
+        .sheet(isPresented: $showingSignInRequired) {
+            SignInRequiredView()
+        }
         .confirmationModal(
             isPresented: $showingDisconnectConfirmation,
             title: "Disconnect from \(friend.name)?",
@@ -182,7 +217,7 @@ struct FriendDetailView: View {
             confirmLabel: "Disconnect",
             successMessage: "Disconnected from \(friend.name)"
         ) {
-            Task { await ConnectService.shared.disconnect(friend: friend) }
+            Task { await ConnectService.shared.disconnect(friend: friend, context: modelContext) }
         }
         .task {
             await refreshFromRemote()
@@ -199,6 +234,14 @@ struct FriendDetailView: View {
         await FriendSyncService.shared.pullFriends(into: modelContext)
         if friend.linkedUserID != nil {
             await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
+        }
+    }
+
+    private func syncExpenses() {
+        isSyncingExpenses = true
+        Task {
+            await ExpenseSyncService.shared.pushAll(for: friend, expenses: friendsExpenses)
+            isSyncingExpenses = false
         }
     }
 
