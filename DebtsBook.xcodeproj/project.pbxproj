@@ -6,13 +6,51 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0F7291BD8646F656C757009F /* DataIntegrityServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */; };
+		40473F7C3029586D001639B7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 40473F7B3029586D001639B7 /* Supabase */; };
+		66FACA0181AA59D6151FCDE5 /* ExpenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */; };
+		7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */; };
+		8DA857E202E0B432B23DE6D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1DC63035704386DEA489FB1 /* Foundation.framework */; };
+		D4DE3CF6C72FE152E0B861AC /* BudgetModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D445085544E9F18E33936348 /* BudgetModelTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BC2F565FE488431DE936D90A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 40A4BF1A2FFF179300E9206F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 40A4BF212FFF179300E9206F;
+			remoteInfo = DebtsBook;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		40A4BF222FFF179300E9206F /* DebtsBook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DebtsBook.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExpenseModelTests.swift; sourceTree = "<group>"; };
+		9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataIntegrityServiceTests.swift; sourceTree = "<group>"; };
+		C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivityModelTests.swift; sourceTree = "<group>"; };
+		D445085544E9F18E33936348 /* BudgetModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BudgetModelTests.swift; sourceTree = "<group>"; };
+		F1DC63035704386DEA489FB1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		FB445D667B903BB7542F1E36 /* DebtsBookTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DebtsBookTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		40473F7D30295BCF001639B7 /* Exceptions for "DebtsBook" folder in "DebtsBook" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 40A4BF212FFF179300E9206F /* DebtsBook */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		40A4BF242FFF179300E9206F /* DebtsBook */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				40473F7D30295BCF001639B7 /* Exceptions for "DebtsBook" folder in "DebtsBook" target */,
+			);
 			path = DebtsBook;
 			sourceTree = "<group>";
 		};
@@ -23,17 +61,48 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				40473F7C3029586D001639B7 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		722331198A6A3FBBF4CE37CE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8DA857E202E0B432B23DE6D2 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0207265636BCB44EAF6AA9ED /* DebtsBookTests */ = {
+			isa = PBXGroup;
+			children = (
+				9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */,
+				D445085544E9F18E33936348 /* BudgetModelTests.swift */,
+				57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */,
+				C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */,
+			);
+			path = DebtsBookTests;
+			sourceTree = "<group>";
+		};
+		40473F7A30295817001639B7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A2A564D35ECA5657622D2B87 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		40A4BF192FFF179300E9206F = {
 			isa = PBXGroup;
 			children = (
 				40A4BF242FFF179300E9206F /* DebtsBook */,
+				40473F7A30295817001639B7 /* Frameworks */,
 				40A4BF232FFF179300E9206F /* Products */,
+				FB445D667B903BB7542F1E36 /* DebtsBookTests.xctest */,
+				0207265636BCB44EAF6AA9ED /* DebtsBookTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -45,9 +114,35 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A2A564D35ECA5657622D2B87 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				F1DC63035704386DEA489FB1 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		10E20317F724209C3B4FB860 /* DebtsBookTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 39A6F69D34538D1D116A55D4 /* Build configuration list for PBXNativeTarget "DebtsBookTests" */;
+			buildPhases = (
+				C8DE3809CB46741B58801330 /* Sources */,
+				722331198A6A3FBBF4CE37CE /* Frameworks */,
+				849092BB03C188DBBEEDEFF3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BACB48C11C6440D25D10AF37 /* PBXTargetDependency */,
+			);
+			name = DebtsBookTests;
+			productName = DebtsBookTests;
+			productReference = FB445D667B903BB7542F1E36 /* DebtsBookTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		40A4BF212FFF179300E9206F /* DebtsBook */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 40A4BF2D2FFF179400E9206F /* Build configuration list for PBXNativeTarget "DebtsBook" */;
@@ -65,6 +160,7 @@
 			);
 			name = DebtsBook;
 			packageProductDependencies = (
+				40473F7B3029586D001639B7 /* Supabase */,
 			);
 			productName = DebtsBook;
 			productReference = 40A4BF222FFF179300E9206F /* DebtsBook.app */;
@@ -94,18 +190,29 @@
 			);
 			mainGroup = 40A4BF192FFF179300E9206F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				40473F7930294E0F001639B7 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 40A4BF232FFF179300E9206F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				40A4BF212FFF179300E9206F /* DebtsBook */,
+				10E20317F724209C3B4FB860 /* DebtsBookTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		40A4BF202FFF179300E9206F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		849092BB03C188DBBEEDEFF3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +229,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C8DE3809CB46741B58801330 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F7291BD8646F656C757009F /* DataIntegrityServiceTests.swift in Sources */,
+				D4DE3CF6C72FE152E0B861AC /* BudgetModelTests.swift in Sources */,
+				66FACA0181AA59D6151FCDE5 /* ExpenseModelTests.swift in Sources */,
+				7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BACB48C11C6440D25D10AF37 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = DebtsBook;
+			target = 40A4BF212FFF179300E9206F /* DebtsBook */;
+			targetProxy = BC2F565FE488431DE936D90A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		40A4BF2B2FFF179400E9206F /* Debug */ = {
@@ -256,6 +383,7 @@
 				DEVELOPMENT_TEAM = 287AK8V53X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DebtsBook/Info.plist;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -289,6 +417,7 @@
 				DEVELOPMENT_TEAM = 287AK8V53X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DebtsBook/Info.plist;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -312,9 +441,55 @@
 			};
 			name = Release;
 		};
+		74E5BBAB46D13876627DA662 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_BUNDLE_IDENTIFIER = Cristian.DebtsBookTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DebtsBook.app/DebtsBook";
+			};
+			name = Debug;
+		};
+		96441BA55E59751B2E0A4607 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				PRODUCT_BUNDLE_IDENTIFIER = Cristian.DebtsBookTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DebtsBook.app/DebtsBook";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		39A6F69D34538D1D116A55D4 /* Build configuration list for PBXNativeTarget "DebtsBookTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				96441BA55E59751B2E0A4607 /* Release */,
+				74E5BBAB46D13876627DA662 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		40A4BF1D2FFF179300E9206F /* Build configuration list for PBXProject "DebtsBook" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -334,6 +509,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		40473F7930294E0F001639B7 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		40473F7B3029586D001639B7 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40473F7930294E0F001639B7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 40A4BF1A2FFF179300E9206F /* Project object */;
 }

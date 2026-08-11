@@ -175,20 +175,42 @@ struct ExpenseEditView: View {
         guard let amount else { return }
         guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previousFriend = expense.friend
+        let previousRemoteID = expense.remoteID
+        let newFriend = isPersonal ? nil : selectedFriend
+        let friendChanged = previousFriend?.persistentModelID != newFriend?.persistentModelID
         expense.title = title
         expense.amount = amount
         expense.date = date
-        expense.friend = isPersonal ? nil : selectedFriend
+        expense.friend = newFriend
         expense.group = isPersonal ? selectedGroup : nil
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
-        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
+        let updateActivity = Activity(type: .updated, expenseTitle: expense.title, friendName: newFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: newFriend)
+        modelContext.insert(updateActivity)
+        if friendChanged, previousFriend?.linkedUserID != nil, let previousRemoteID {
+            // The expense moved off a connected friend — its old remote row belongs to a
+            // connection it's no longer part of. Clear the id so a push under the new friend
+            // (if any) creates a fresh row instead of re-upserting into the old connection.
+            expense.remoteID = nil
+            Task { await ExpenseSyncService.shared.delete(remoteID: previousRemoteID) }
+        }
+        if expense.friend?.linkedUserID != nil {
+            Task { await ExpenseSyncService.shared.push(expense: expense) }
+            Task { await ActivitySyncService.shared.push(activity: updateActivity) }
+        }
         dismiss()
     }
 
     private func delete() {
-        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
+        let deleteActivity = Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend)
+        modelContext.insert(deleteActivity)
+        let remoteID = expense.remoteID
+        if expense.friend?.linkedUserID != nil, let remoteID {
+            Task { await ExpenseSyncService.shared.delete(remoteID: remoteID) }
+            Task { await ActivitySyncService.shared.push(activity: deleteActivity) }
+        }
         modelContext.delete(expense)
     }
 }

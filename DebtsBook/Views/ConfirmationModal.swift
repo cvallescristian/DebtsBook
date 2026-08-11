@@ -7,7 +7,8 @@ private struct ConfirmationModal: View {
     let confirmLabel: String
     let successMessage: String
     let isDestructive: Bool
-    let onConfirm: () -> Void
+    let onConfirm: (() -> Void)?
+    let onConfirmAsync: (() async -> Bool)?
 
     @State private var showingSuccess = false
     @Environment(\.dismiss) private var dismiss
@@ -68,7 +69,22 @@ private struct ConfirmationModal: View {
     }
 
     private func confirmTapped() {
-        onConfirm()
+        if let onConfirmAsync {
+            Task {
+                let succeeded = await onConfirmAsync()
+                if succeeded {
+                    showSuccessThenDismiss()
+                } else {
+                    dismiss()
+                }
+            }
+        } else {
+            onConfirm?()
+            showSuccessThenDismiss()
+        }
+    }
+
+    private func showSuccessThenDismiss() {
         showingSuccess = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
             dismiss()
@@ -88,7 +104,25 @@ extension View {
         onDismiss: (() -> Void)? = nil
     ) -> some View {
         sheet(isPresented: isPresented, onDismiss: onDismiss) {
-            ConfirmationModal(title: title, message: message, confirmLabel: confirmLabel, successMessage: successMessage, isDestructive: isDestructive, onConfirm: onConfirm)
+            ConfirmationModal(title: title, message: message, confirmLabel: confirmLabel, successMessage: successMessage, isDestructive: isDestructive, onConfirm: onConfirm, onConfirmAsync: nil)
+        }
+    }
+
+    /// Variant for confirmations whose action can fail (e.g. a network call). Success is only
+    /// shown when the closure returns `true`; on `false` the sheet dismisses silently so the
+    /// caller can surface the failure itself instead of falsely reporting success.
+    func confirmationModal(
+        isPresented: Binding<Bool>,
+        title: String,
+        message: String,
+        confirmLabel: String = "Confirm",
+        successMessage: String,
+        isDestructive: Bool = true,
+        onConfirm: @escaping () async -> Bool,
+        onDismiss: (() -> Void)? = nil
+    ) -> some View {
+        sheet(isPresented: isPresented, onDismiss: onDismiss) {
+            ConfirmationModal(title: title, message: message, confirmLabel: confirmLabel, successMessage: successMessage, isDestructive: isDestructive, onConfirm: nil, onConfirmAsync: onConfirm)
         }
     }
 }

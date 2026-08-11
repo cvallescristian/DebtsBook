@@ -17,7 +17,12 @@ class Activity {
     var friendName: String?
     var amount: Decimal = 0
     var paidByMe: Bool = true
+    /// Whether the device that's viewing this entry is the one that performed the action.
+    /// Always true for an entry created locally; only false for one pulled from a connected
+    /// friend's side, so its wording (title) can flip from "You added…" to "Ana added…".
+    var performedByMe: Bool = true
     var date: Date = Date()
+    var remoteID: UUID?
 
     @Relationship(deleteRule: .nullify)
     var expense: Expense?
@@ -25,12 +30,13 @@ class Activity {
     @Relationship(deleteRule: .nullify)
     var friend: Friend?
 
-    init(type: ActivityType, expenseTitle: String, friendName: String? = nil, amount: Decimal, paidByMe: Bool, expense: Expense? = nil, friend: Friend? = nil, date: Date = Date()) {
+    init(type: ActivityType, expenseTitle: String, friendName: String? = nil, amount: Decimal, paidByMe: Bool, performedByMe: Bool = true, expense: Expense? = nil, friend: Friend? = nil, date: Date = Date()) {
         self.type = type
         self.expenseTitle = expenseTitle
         self.friendName = friendName
         self.amount = amount
         self.paidByMe = paidByMe
+        self.performedByMe = performedByMe
         self.expense = expense
         self.friend = friend
         self.date = date
@@ -46,18 +52,26 @@ class Activity {
     }
 
     var title: String {
+        let actorName = friendName ?? "Your friend"
         switch type {
         case .created:
             guard let friendName else { return "You added \u{201C}\(expenseTitle)\u{201D}." }
-            return "You added \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+            return performedByMe
+                ? "You added \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+                : "\(actorName) added \u{201C}\(expenseTitle)\u{201D} with you."
         case .updated:
             guard let friendName else { return "You updated \u{201C}\(expenseTitle)\u{201D}." }
-            return "You updated \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+            return performedByMe
+                ? "You updated \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+                : "\(actorName) updated \u{201C}\(expenseTitle)\u{201D} with you."
         case .deleted:
             guard let friendName else { return "You deleted \u{201C}\(expenseTitle)\u{201D}." }
-            return "You deleted \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+            return performedByMe
+                ? "You deleted \u{201C}\(expenseTitle)\u{201D} with \(friendName)."
+                : "\(actorName) deleted \u{201C}\(expenseTitle)\u{201D} with you."
         case .paid: return paidByMe ? "\(friendName ?? "Friend") paid you." : "You paid \(friendName ?? "friend")."
-        case .settledUp: return "You settled up with \(friendName ?? "friend")."
+        case .settledUp:
+            return performedByMe ? "You settled up with \(actorName)." : "\(actorName) settled up with you."
         }
     }
 

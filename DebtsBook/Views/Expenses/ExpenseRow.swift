@@ -67,16 +67,28 @@ extension View {
 /// Toggles `isSettled` and keeps the Activity log in sync: marking paid logs a `.paid` entry,
 /// marking unpaid again removes that same entry instead of logging a separate "unpaid" event.
 private func toggleSettled(for expense: Expense, in modelContext: ModelContext) {
+    let isConnected = expense.friend?.linkedUserID != nil
     if expense.isSettled {
         expense.isSettled = false
         let descriptor = FetchDescriptor<Activity>(sortBy: [SortDescriptor(\.date, order: .reverse)])
         if let activities = try? modelContext.fetch(descriptor),
            let lastPaidActivity = activities.first(where: { $0.type == .paid && $0.expense?.persistentModelID == expense.persistentModelID }) {
+            let remoteID = lastPaidActivity.remoteID
+            if isConnected, let remoteID {
+                Task { await ActivitySyncService.shared.delete(remoteID: remoteID) }
+            }
             modelContext.delete(lastPaidActivity)
         }
     } else {
         expense.isSettled = true
-        modelContext.insert(Activity(type: .paid, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: expense.friend))
+        let activity = Activity(type: .paid, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: expense.friend)
+        modelContext.insert(activity)
+        if isConnected {
+            Task { await ActivitySyncService.shared.push(activity: activity) }
+        }
+    }
+    if isConnected {
+        Task { await ExpenseSyncService.shared.push(expense: expense) }
     }
 }
 

@@ -11,6 +11,10 @@ struct FriendView: View {
     @State private var selectedTab: FriendTab = .friends
     @State private var showingFriendNew: Bool = false
     @State private var showingGroupNew: Bool = false
+    @State private var showingRedeemInvite: Bool = false
+    @State private var showingSignInRequired: Bool = false
+    var authService = AuthService.shared
+    @Environment(\.modelContext) private var modelContext
     @Query private var friends: [Friend]
     @Query private var expenses: [Expense]
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
@@ -21,9 +25,31 @@ struct FriendView: View {
             .netBalance
     }
 
+    private var overallBalance: Decimal {
+        expenses.netBalance
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                HStack {
+                    if overallBalance > 0 {
+                        Text("Overall, you are owed")
+                        Text(overallBalance, format: .currency(code: "NZD"))
+                            .foregroundColor(.green)
+                            .bold()
+                    } else if overallBalance < 0 {
+                        Text("Overall, you owe")
+                        Text(-overallBalance, format: .currency(code: "NZD"))
+                            .foregroundColor(.red)
+                            .bold()
+                    } else {
+                        Text("All settled up")
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+
                 Picker("Tab", selection: $selectedTab) {
                     ForEach(FriendTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -42,14 +68,29 @@ struct FriendView: View {
             }
             .navigationTitle(selectedTab.rawValue)
             .toolbar {
-                Button {
+                ToolbarItem(placement: .topBarLeading) {
                     if selectedTab == .friends {
-                        showingFriendNew = true
-                    } else {
-                        showingGroupNew = true
+                        Button {
+                            if authService.isSignedIn {
+                                showingRedeemInvite = true
+                            } else {
+                                showingSignInRequired = true
+                            }
+                        } label: {
+                            Image(systemName: "link.circle")
+                        }
                     }
-                } label: {
-                    Image(systemName: "plus")
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        if selectedTab == .friends {
+                            showingFriendNew = true
+                        } else {
+                            showingGroupNew = true
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .sheet(isPresented: $showingFriendNew) {
@@ -58,34 +99,43 @@ struct FriendView: View {
             .sheet(isPresented: $showingGroupNew) {
                 GroupNewView()
             }
+            .sheet(isPresented: $showingRedeemInvite) {
+                RedeemInviteView()
+            }
+            .sheet(isPresented: $showingSignInRequired) {
+                SignInRequiredView()
+            }
         }
     }
 
     private var friendsList: some View {
         List {
-            ForEach(friends) { friend in
+            ForEach(Array(friends.enumerated()), id: \.element.persistentModelID) { index, friend in
                 NavigationLink {
                     FriendDetailView(friend: friend)
                 } label: {
-                    HStack {
-                        Text(friend.name)
-                        Spacer()
-                        if balance(for: friend) == 0 {
-                            Label("Settled up", systemImage: "hand.thumbsup.fill")
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text(balance(for: friend), format: .currency(code: "NZD").sign(strategy: .always()))
-                                .foregroundColor(balance(for: friend) > 0 ? .green : .red)
+                    VStack(spacing: 0) {
+                        FriendRow(friend: friend, balance: balance(for: friend))
+                            .padding(.vertical, 8)
+                        if index < friends.count - 1 {
+                            Rectangle()
+                                .fill(Color(.separator))
+                                .frame(height: 0.5)
+                                .padding(.leading, 48)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
             }
         }
         .overlay {
             if friends.isEmpty {
                 ContentUnavailableView("No Friends", systemImage: "person.2", description: Text("Tap + to add your first friend."))
             }
+        }
+        .refreshable {
+            await FriendSyncService.shared.pullFriends(into: modelContext)
         }
     }
 
