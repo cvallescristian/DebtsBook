@@ -23,6 +23,10 @@ private struct DeletedConnection: Decodable {
     let id: UUID
 }
 
+private struct PendingInvite: Decodable {
+    let code: String
+}
+
 @Observable
 final class ConnectService {
     static let shared = ConnectService()
@@ -64,6 +68,30 @@ final class ConnectService {
         }
     }
 
+    /// Returns the still-valid, unredeemed invite code for `friend`'s connection, if any —
+    /// so reopening the invite sheet on a pending connection shows the same code instead of
+    /// minting a new one (and leaving the old one dangling, redeemable, and confusing).
+    func pendingInviteCode(for friend: Friend) async -> String? {
+        guard let connectionID = friend.connectionID,
+              let userID = AuthService.shared.session?.user.id else { return nil }
+        do {
+            let invites: [PendingInvite] = try await client
+                .from("invites")
+                .select("code")
+                .eq("connection_id", value: connectionID)
+                .eq("inviter_id", value: userID)
+                .eq("redeemed", value: false)
+                .gt("expires_at", value: Date())
+                .order("created_at", ascending: false)
+                .limit(1)
+                .execute()
+                .value
+            return invites.first?.code
+        } catch {
+            return nil
+        }
+    }
+
     /// Deletes the shared connection (cascades to its expenses in Supabase) and clears the
     /// local link. Each side keeps their own copy of the expense history synced so far.
     func disconnect(friend: Friend, context: ModelContext) async -> Bool {
@@ -91,6 +119,10 @@ final class ConnectService {
             let expenses = (try? context.fetch(FetchDescriptor<Expense>())) ?? []
             for expense in expenses where expense.friend?.persistentModelID == friend.persistentModelID {
                 expense.remoteID = nil
+            }
+            let activities = (try? context.fetch(FetchDescriptor<Activity>())) ?? []
+            for activity in activities where activity.friend?.persistentModelID == friend.persistentModelID {
+                activity.remoteID = nil
             }
             lastError = nil
             return true

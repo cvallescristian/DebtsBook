@@ -25,9 +25,31 @@ struct FriendView: View {
             .netBalance
     }
 
+    private var overallBalance: Decimal {
+        expenses.netBalance
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                HStack {
+                    if overallBalance > 0 {
+                        Text("Overall, you are owed")
+                        Text(overallBalance, format: .currency(code: "NZD"))
+                            .foregroundColor(.green)
+                            .bold()
+                    } else if overallBalance < 0 {
+                        Text("Overall, you owe")
+                        Text(-overallBalance, format: .currency(code: "NZD"))
+                            .foregroundColor(.red)
+                            .bold()
+                    } else {
+                        Text("All settled up")
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+
                 Picker("Tab", selection: $selectedTab) {
                     ForEach(FriendTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -88,28 +110,23 @@ struct FriendView: View {
 
     private var friendsList: some View {
         List {
-            ForEach(friends) { friend in
+            ForEach(Array(friends.enumerated()), id: \.element.persistentModelID) { index, friend in
                 NavigationLink {
                     FriendDetailView(friend: friend)
                 } label: {
-                    HStack {
-                        Text(friend.name)
-                        if friend.connectionID != nil {
-                            Image(systemName: "link.circle.fill")
-                                .foregroundStyle(.blue)
-                                .font(.caption)
-                        }
-                        Spacer()
-                        if balance(for: friend) == 0 {
-                            Label("Settled up", systemImage: "hand.thumbsup.fill")
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text(balance(for: friend), format: .currency(code: "NZD").sign(strategy: .always()))
-                                .foregroundColor(balance(for: friend) > 0 ? .green : .red)
+                    VStack(spacing: 0) {
+                        FriendRow(friend: friend, balance: balance(for: friend))
+                            .padding(.vertical, 8)
+                        if index < friends.count - 1 {
+                            Rectangle()
+                                .fill(Color(.separator))
+                                .frame(height: 0.5)
+                                .padding(.leading, 48)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
             }
         }
         .overlay {

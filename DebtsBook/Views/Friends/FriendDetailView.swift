@@ -44,13 +44,16 @@ struct FriendDetailView: View {
         friendsExpenses.contains { !$0.isSettled }
     }
 
-    private var hasUnsyncedExpenses: Bool {
-        friend.connectionID != nil && friend.linkedUserID != nil && friendsExpenses.contains { $0.remoteID == nil }
+    private var hasUnsyncedData: Bool {
+        guard friend.connectionID != nil && friend.linkedUserID != nil else { return false }
+        return friendsExpenses.contains { $0.remoteID == nil } || friendsActivities.contains { $0.remoteID == nil }
     }
 
     var body: some View {
         List {
             VStack(spacing: 12) {
+                FriendAvatar(name: friend.name, photoData: friend.photoData, iconName: friend.iconName, size: 64)
+
                 HStack {
                     if balance > 0 {
                         Text("Overall, you are owed")
@@ -77,14 +80,20 @@ struct FriendDetailView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.regular)
                 }
+
+                if friend.linkedUserID != nil, let lastSyncedAt = friend.lastSyncedAt {
+                    Text("Last synced \(lastSyncedAt.formatted(.relative(presentation: .named)))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
 
-            if hasUnsyncedExpenses {
+            if hasUnsyncedData {
                 Button {
-                    syncExpenses()
+                    syncPendingData()
                 } label: {
                     HStack {
                         if isSyncingExpenses {
@@ -92,7 +101,7 @@ struct FriendDetailView: View {
                         } else {
                             Image(systemName: "arrow.triangle.2.circlepath")
                         }
-                        Text(isSyncingExpenses ? "Syncing…" : "The expenses haven't synced yet. Tap to sync.")
+                        Text(isSyncingExpenses ? "Syncing…" : "Some info hasn't synced yet. Tap to sync.")
                             .font(.subheadline)
                     }
                     .frame(maxWidth: .infinity)
@@ -114,33 +123,35 @@ struct FriendDetailView: View {
 
             switch selectedTab {
             case .expenses:
-                Section {
-                    ForEach(friendsExpenses) { expense in
-                        Button {
-                            editingExpense = expense
-                        } label: {
-                            ExpenseRow(expense: expense)
+                if friendsExpenses.isEmpty {
+                    ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses with \(friend.name) will show up here."))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                } else {
+                    Section {
+                        ForEach(friendsExpenses) { expense in
+                            Button {
+                                editingExpense = expense
+                            } label: {
+                                ExpenseRow(expense: expense)
+                            }
+                            .tint(.primary)
+                            .settleSwipeAction(for: expense, in: modelContext)
                         }
-                        .tint(.primary)
-                        .settleSwipeAction(for: expense, in: modelContext)
                     }
                 }
             case .activity:
-                Section {
-                    ForEach(friendsActivities) { activity in
-                        ActivityRow(activity: activity)
+                if friendsActivities.isEmpty {
+                    ContentUnavailableView("No Activity", systemImage: "clock.arrow.circlepath", description: Text("Changes you make will show up here."))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                } else {
+                    Section {
+                        ForEach(friendsActivities) { activity in
+                            ActivityRow(activity: activity)
+                        }
                     }
                 }
-            }
-        }
-        .overlay {
-            switch selectedTab {
-            case .expenses where friendsExpenses.isEmpty:
-                ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses with \(friend.name) will show up here."))
-            case .activity where friendsActivities.isEmpty:
-                ContentUnavailableView("No Activity", systemImage: "clock.arrow.circlepath", description: Text("Changes you make will show up here."))
-            default:
-                EmptyView()
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -178,6 +189,12 @@ struct FriendDetailView: View {
                         }
                     } label: {
                         Image(systemName: "person.badge.plus")
+                    }
+                } else if friend.linkedUserID == nil {
+                    Button {
+                        showingInviteFriend = true
+                    } label: {
+                        Image(systemName: "hourglass")
                     }
                 } else {
                     Button {
@@ -229,18 +246,20 @@ struct FriendDetailView: View {
 
     private func refreshFromRemote() async {
         // pullFriends also detects a friend's linkedUserID newly resolving (their invite
-        // just got redeemed) and re-pushes that friend's expenses to fix up any that went
-        // out before the connection was fully established.
+        // just got redeemed) and re-pushes that friend's expenses/activities to fix up
+        // anything that went out before the connection was fully established.
         await FriendSyncService.shared.pullFriends(into: modelContext)
         if friend.linkedUserID != nil {
             await ExpenseSyncService.shared.pullExpenses(into: modelContext, for: friend)
+            await ActivitySyncService.shared.pullActivities(into: modelContext, for: friend)
         }
     }
 
-    private func syncExpenses() {
+    private func syncPendingData() {
         isSyncingExpenses = true
         Task {
             await ExpenseSyncService.shared.pushAll(for: friend, expenses: friendsExpenses)
+            await ActivitySyncService.shared.pushAll(for: friend, activities: friendsActivities)
             isSyncingExpenses = false
         }
     }
@@ -254,7 +273,11 @@ struct FriendDetailView: View {
                 Task { await ExpenseSyncService.shared.push(expense: expense) }
             }
         }
-        modelContext.insert(Activity(type: .settledUp, expenseTitle: "", friendName: friend.name, amount: abs(settledAmount), paidByMe: settledAmount > 0, friend: friend))
+        let activity = Activity(type: .settledUp, expenseTitle: "", friendName: friend.name, amount: abs(settledAmount), paidByMe: settledAmount > 0, friend: friend)
+        modelContext.insert(activity)
+        if isConnected {
+            Task { await ActivitySyncService.shared.push(activity: activity) }
+        }
     }
 }
 

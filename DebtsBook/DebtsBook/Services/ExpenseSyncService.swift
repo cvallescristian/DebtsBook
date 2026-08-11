@@ -106,6 +106,7 @@ final class ExpenseSyncService {
                 }
             }
 
+            friend.lastSyncedAt = Date()
             lastError = nil
         } catch {
             lastError = error.localizedDescription
@@ -117,7 +118,7 @@ final class ExpenseSyncService {
     /// locally-cached `linkedUserID` that can go stale (e.g. before the invite is redeemed,
     /// or if a prior sync bug left it wrong). Returns nil if the connection has no second
     /// member yet (not redeemed).
-    private func resolveOtherMember(of connectionID: UUID, excluding currentUserID: UUID) async -> UUID? {
+    func resolveOtherMember(of connectionID: UUID, excluding currentUserID: UUID) async -> UUID? {
         do {
             let members: ConnectionMembers = try await client
                 .from("connections")

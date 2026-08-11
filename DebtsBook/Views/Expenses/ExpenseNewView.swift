@@ -148,9 +148,11 @@ struct ExpenseNewView: View {
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, group: isPersonal ? selectedGroup : nil, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         modelContext.insert(expense)
-        modelContext.insert(Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
+        let activity = Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend)
+        modelContext.insert(activity)
         if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.push(expense: expense) }
+            Task { await ActivitySyncService.shared.push(activity: activity) }
         }
         dismiss()
     }

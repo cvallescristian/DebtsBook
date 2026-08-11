@@ -44,10 +44,17 @@ final class FriendSyncService {
             var newlyLinkedFriends: [Friend] = []
 
             for remote in remoteFriends {
+                // connections.id cascades an ON DELETE SET NULL onto friends.connection_id,
+                // but linked_user_id has no such FK and is never cleared server-side — so a
+                // friend disconnected from the other side still arrives here with a stale
+                // linked_user_id pointing at a connection that's already gone. Treat it as
+                // unlinked whenever there's no connection to back it up.
+                let resolvedLinkedUserID = remote.connection_id == nil ? nil : remote.linked_user_id
+
                 if let local = byRemoteID[remote.id] {
                     let hadLinkedUser = local.linkedUserID != nil
                     local.name = remote.name
-                    local.linkedUserID = remote.linked_user_id
+                    local.linkedUserID = resolvedLinkedUserID
                     local.connectionID = remote.connection_id
                     if !hadLinkedUser && local.linkedUserID != nil {
                         newlyLinkedFriends.append(local)
@@ -55,7 +62,7 @@ final class FriendSyncService {
                 } else {
                     let friend = Friend(name: remote.name)
                     friend.remoteID = remote.id
-                    friend.linkedUserID = remote.linked_user_id
+                    friend.linkedUserID = resolvedLinkedUserID
                     friend.connectionID = remote.connection_id
                     context.insert(friend)
                 }
@@ -63,15 +70,18 @@ final class FriendSyncService {
             lastError = nil
 
             // A friend's linkedUserID resolving for the first time means a pending invite
-            // just got redeemed. Any expense pushed before that point (the history transfer
-            // at invite-creation, or any "friend paid" expense pushed while still pending)
-            // went out with an unresolved paid_by_user_id — re-push everything for that
-            // friend now that the connection is fully established to correct it.
+            // just got redeemed. Any expense/activity pushed before that point (the history
+            // transfer at invite-creation, or anything pushed while still pending) went out
+            // with an unresolved actor — re-push everything for that friend now that the
+            // connection is fully established to correct it.
             if !newlyLinkedFriends.isEmpty {
                 let allExpenses = try context.fetch(FetchDescriptor<Expense>())
+                let allActivities = try context.fetch(FetchDescriptor<Activity>())
                 for friend in newlyLinkedFriends {
                     let friendExpenses = allExpenses.filter { $0.friend?.persistentModelID == friend.persistentModelID }
                     await ExpenseSyncService.shared.pushAll(for: friend, expenses: friendExpenses)
+                    let friendActivities = allActivities.filter { $0.friend?.persistentModelID == friend.persistentModelID }
+                    await ActivitySyncService.shared.pushAll(for: friend, activities: friendActivities)
                 }
             }
         } catch {

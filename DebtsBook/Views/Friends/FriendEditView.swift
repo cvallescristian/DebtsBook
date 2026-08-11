@@ -7,6 +7,8 @@ struct FriendEditView: View {
     var onDelete: () -> Void = {}
 
     @State private var name: String
+    @State private var photoData: Data?
+    @State private var iconName: String?
     @State private var showingDeleteConfirmation: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -16,11 +18,22 @@ struct FriendEditView: View {
         self.friend = friend
         self.onDelete = onDelete
         _name = State(initialValue: friend.name)
+        _photoData = State(initialValue: friend.photoData)
+        _iconName = State(initialValue: friend.iconName)
     }
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    HStack {
+                        Spacer()
+                        AvatarPhotoPicker(name: name, photoData: $photoData, iconName: $iconName)
+                        Spacer()
+                    }
+                }
+                .listRowBackground(Color.clear)
+
                 TextField("Name", text: $name)
                     .focused($isInputFocused)
 
@@ -72,6 +85,8 @@ struct FriendEditView: View {
 
     private func save() {
         friend.name = name
+        friend.photoData = photoData
+        friend.iconName = iconName
         Task { await FriendSyncService.shared.push(friend: friend) }
         dismiss()
     }

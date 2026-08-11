@@ -183,17 +183,21 @@ struct ExpenseEditView: View {
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
-        modelContext.insert(Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend))
+        let updateActivity = Activity(type: .updated, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend)
+        modelContext.insert(updateActivity)
         if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.push(expense: expense) }
+            Task { await ActivitySyncService.shared.push(activity: updateActivity) }
         }
         dismiss()
     }
 
     private func delete() {
-        modelContext.insert(Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend))
+        let deleteActivity = Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend)
+        modelContext.insert(deleteActivity)
         if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.delete(expense: expense) }
+            Task { await ActivitySyncService.shared.push(activity: deleteActivity) }
         }
         modelContext.delete(expense)
     }
