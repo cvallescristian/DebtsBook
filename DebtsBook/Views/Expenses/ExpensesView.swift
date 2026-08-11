@@ -15,10 +15,6 @@ struct ExpensesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
 
-    private var balance: Decimal {
-        expenses.netBalance
-    }
-
     private var filteredExpenses: [Expense] {
         switch selectedFilter {
         case .all: return expenses
@@ -31,23 +27,6 @@ struct ExpensesView: View {
     var body: some View {
         NavigationStack {
             List {
-                HStack {
-                    if balance > 0 {
-                        Text("Overall, you are owed")
-                        Text(balance, format: .currency(code: "NZD"))
-                            .foregroundColor(.green)
-                            .bold()
-                    } else if balance < 0 {
-                        Text("Overall, you owe")
-                        Text(-balance, format: .currency(code: "NZD"))
-                            .foregroundColor(.red)
-                            .bold()
-                    } else {
-                        Text("All settled up")
-                    }
-                }
-                .listRowBackground(Color.clear)
-
                 Picker("Filter", selection: $selectedFilter) {
                     ForEach(ExpenseFilter.allCases, id: \.self) { filter in
                         Text(filter.rawValue).tag(filter)
