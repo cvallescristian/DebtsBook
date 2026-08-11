@@ -41,7 +41,7 @@ private struct BackupActivity: Codable {
     let friendName: String?
     let amount: Decimal
     let paidByMe: Bool
-    let performedByMe: Bool
+    let performedByMe: Bool?
     let date: Date
     let expenseID: UUID?
     let friendID: UUID?
@@ -209,7 +209,7 @@ enum BackupService {
                 friendName: backupActivity.friendName,
                 amount: backupActivity.amount,
                 paidByMe: backupActivity.paidByMe,
-                performedByMe: backupActivity.performedByMe,
+                performedByMe: backupActivity.performedByMe ?? true,
                 expense: expense,
                 friend: friend,
                 date: backupActivity.date

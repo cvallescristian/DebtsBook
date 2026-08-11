@@ -42,6 +42,8 @@ struct FriendEditView: View {
 
                 Section {
                     Button("Delete Friend", role: .destructive) {
+                        deleteAttempted = false
+                        deleteSucceeded = false
                         showingDeleteConfirmation = true
                     }
                 }
