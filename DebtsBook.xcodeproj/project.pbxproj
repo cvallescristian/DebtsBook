@@ -8,7 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		0F7291BD8646F656C757009F /* DataIntegrityServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */; };
+		2852B477AC0040B2ABB95958 /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C01AB986794B39A0722962 /* BackupServiceTests.swift */; };
 		40473F7C3029586D001639B7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 40473F7B3029586D001639B7 /* Supabase */; };
+		D07ADC555ED54D2C8844B181 /* FriendGroupModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D0518BA9184C5AAA58E456 /* FriendGroupModelTests.swift */; };
 		66FACA0181AA59D6151FCDE5 /* ExpenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */; };
 		7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */; };
 		8DA857E202E0B432B23DE6D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1DC63035704386DEA489FB1 /* Foundation.framework */; };
@@ -28,6 +30,8 @@
 /* Begin PBXFileReference section */
 		40A4BF222FFF179300E9206F /* DebtsBook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DebtsBook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExpenseModelTests.swift; sourceTree = "<group>"; };
+		A7D0518BA9184C5AAA58E456 /* FriendGroupModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FriendGroupModelTests.swift; sourceTree = "<group>"; };
+		E3C01AB986794B39A0722962 /* BackupServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
 		9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataIntegrityServiceTests.swift; sourceTree = "<group>"; };
 		C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivityModelTests.swift; sourceTree = "<group>"; };
 		D445085544E9F18E33936348 /* BudgetModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BudgetModelTests.swift; sourceTree = "<group>"; };
@@ -83,6 +87,8 @@
 				D445085544E9F18E33936348 /* BudgetModelTests.swift */,
 				57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */,
 				C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */,
+				A7D0518BA9184C5AAA58E456 /* FriendGroupModelTests.swift */,
+				E3C01AB986794B39A0722962 /* BackupServiceTests.swift */,
 			);
 			path = DebtsBookTests;
 			sourceTree = "<group>";
@@ -237,6 +243,8 @@
 				D4DE3CF6C72FE152E0B861AC /* BudgetModelTests.swift in Sources */,
 				66FACA0181AA59D6151FCDE5 /* ExpenseModelTests.swift in Sources */,
 				7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */,
+				D07ADC555ED54D2C8844B181 /* FriendGroupModelTests.swift in Sources */,
+				2852B477AC0040B2ABB95958 /* BackupServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
