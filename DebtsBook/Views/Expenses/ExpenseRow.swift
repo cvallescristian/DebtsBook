@@ -73,8 +73,9 @@ private func toggleSettled(for expense: Expense, in modelContext: ModelContext) 
         let descriptor = FetchDescriptor<Activity>(sortBy: [SortDescriptor(\.date, order: .reverse)])
         if let activities = try? modelContext.fetch(descriptor),
            let lastPaidActivity = activities.first(where: { $0.type == .paid && $0.expense?.persistentModelID == expense.persistentModelID }) {
-            if isConnected {
-                Task { await ActivitySyncService.shared.delete(activity: lastPaidActivity) }
+            let remoteID = lastPaidActivity.remoteID
+            if isConnected, let remoteID {
+                Task { await ActivitySyncService.shared.delete(remoteID: remoteID) }
             }
             modelContext.delete(lastPaidActivity)
         }

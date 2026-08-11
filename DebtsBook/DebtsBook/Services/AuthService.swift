@@ -51,13 +51,10 @@ final class AuthService: NSObject {
     }
 
     func handle(url: URL) {
-        print("AuthService.handle received URL: \(url.absoluteString)")
         Task {
             do {
                 session = try await client.auth.session(from: url)
-                print("AuthService.handle succeeded, user: \(session?.user.email ?? "nil")")
             } catch {
-                print("AuthService.handle failed: \(error)")
                 lastError = error.localizedDescription
             }
         }
@@ -119,15 +116,13 @@ extension AuthService: ASAuthorizationControllerDelegate, ASAuthorizationControl
     }
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        defer {
-            appleSignInContinuation?.resume()
-            appleSignInContinuation = nil
-        }
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
               let tokenData = credential.identityToken,
               let idToken = String(data: tokenData, encoding: .utf8),
               let nonce = currentAppleNonce else {
             lastError = "Could not sign in with Apple."
+            appleSignInContinuation?.resume()
+            appleSignInContinuation = nil
             return
         }
         Task {
@@ -136,6 +131,8 @@ extension AuthService: ASAuthorizationControllerDelegate, ASAuthorizationControl
             } catch {
                 lastError = error.localizedDescription
             }
+            appleSignInContinuation?.resume()
+            appleSignInContinuation = nil
         }
     }
 

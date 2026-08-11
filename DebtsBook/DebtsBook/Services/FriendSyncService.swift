@@ -104,13 +104,16 @@ final class FriendSyncService {
         }
     }
 
-    func delete(friend: Friend) async {
-        guard let remoteID = friend.remoteID else { return }
+    @discardableResult
+    func delete(friend: Friend) async -> Bool {
+        guard let remoteID = friend.remoteID else { return true }
         do {
             try await client.from("friends").delete().eq("id", value: remoteID).execute()
             lastError = nil
+            return true
         } catch {
             lastError = error.localizedDescription
+            return false
         }
     }
 }

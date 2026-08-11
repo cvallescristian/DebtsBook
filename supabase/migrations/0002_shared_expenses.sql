@@ -1,5 +1,7 @@
 -- Run this in the Supabase SQL editor after 0001_friends_sync.sql.
--- Safe to run multiple times: drops and recreates everything this migration owns first.
+-- Not safe to re-run against a live project: it drops and recreates the `expenses` and
+-- `connections` tables (cascading through `friends.connection_id`), which destroys every
+-- shared expense and connection. Only run this once, on a fresh project.
 
 drop table if exists public.expenses cascade;
 drop table if exists public.connections cascade;
@@ -30,6 +32,17 @@ create policy "Members can update their connections"
   to authenticated
   using (auth.uid() in (user_a, user_b))
   with check (auth.uid() in (user_a, user_b));
+
+-- Lets each side of a connection see the other member's profile (name/email) without
+-- exposing every user's profile to every authenticated account.
+create policy "Connection members can view each other's profile"
+  on public.profiles for select
+  to authenticated
+  using (exists (
+    select 1 from public.connections c
+    where auth.uid() in (c.user_a, c.user_b)
+      and profiles.id in (c.user_a, c.user_b)
+  ));
 
 alter table public.friends
   add column if not exists connection_id uuid references public.connections (id) on delete set null;

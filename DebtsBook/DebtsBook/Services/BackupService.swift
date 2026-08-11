@@ -5,6 +5,8 @@ private struct BackupFriend: Codable {
     let id: UUID
     let name: String
     let createdAt: Date
+    let photoData: Data?
+    let iconName: String?
 }
 
 private struct BackupGroup: Codable {
@@ -39,6 +41,7 @@ private struct BackupActivity: Codable {
     let friendName: String?
     let amount: Decimal
     let paidByMe: Bool
+    let performedByMe: Bool
     let date: Date
     let expenseID: UUID?
     let friendID: UUID?
@@ -71,7 +74,7 @@ enum BackupService {
         let expenseIDs = Dictionary(uniqueKeysWithValues: expenses.map { (ObjectIdentifier($0), UUID()) })
 
         let backupFriends = friends.map { friend in
-            BackupFriend(id: friendIDs[ObjectIdentifier(friend)]!, name: friend.name, createdAt: friend.createdAt)
+            BackupFriend(id: friendIDs[ObjectIdentifier(friend)]!, name: friend.name, createdAt: friend.createdAt, photoData: friend.photoData, iconName: friend.iconName)
         }
         let backupGroups = groups.map { group in
             BackupGroup(id: groupIDs[ObjectIdentifier(group)]!, name: group.name, createdAt: group.createdAt)
@@ -105,6 +108,7 @@ enum BackupService {
                 friendName: activity.friendName,
                 amount: activity.amount,
                 paidByMe: activity.paidByMe,
+                performedByMe: activity.performedByMe,
                 date: activity.date,
                 expenseID: activity.expense.flatMap { expenseIDs[ObjectIdentifier($0)] },
                 friendID: activity.friend.flatMap { friendIDs[ObjectIdentifier($0)] }
@@ -156,6 +160,8 @@ enum BackupService {
         for backupFriend in bundle.friends {
             let friend = Friend(name: backupFriend.name)
             friend.createdAt = backupFriend.createdAt
+            friend.photoData = backupFriend.photoData
+            friend.iconName = backupFriend.iconName
             context.insert(friend)
             friendsByID[backupFriend.id] = friend
         }
@@ -203,6 +209,7 @@ enum BackupService {
                 friendName: backupActivity.friendName,
                 amount: backupActivity.amount,
                 paidByMe: backupActivity.paidByMe,
+                performedByMe: backupActivity.performedByMe,
                 expense: expense,
                 friend: friend,
                 date: backupActivity.date

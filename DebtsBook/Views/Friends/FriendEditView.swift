@@ -10,6 +10,9 @@ struct FriendEditView: View {
     @State private var photoData: Data?
     @State private var iconName: String?
     @State private var showingDeleteConfirmation: Bool = false
+    @State private var showingDeleteError: Bool = false
+    @State private var deleteAttempted: Bool = false
+    @State private var deleteSucceeded: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @FocusState private var isInputFocused: Bool
@@ -51,13 +54,23 @@ struct FriendEditView: View {
                 confirmLabel: "Delete",
                 successMessage: "\(friend.name) deleted",
                 onConfirm: {
-                    delete()
+                    await delete()
                 },
                 onDismiss: {
-                    dismiss()
-                    onDelete()
+                    guard deleteAttempted else { return }
+                    if deleteSucceeded {
+                        dismiss()
+                        onDelete()
+                    } else {
+                        showingDeleteError = true
+                    }
                 }
             )
+            .alert("Couldn't Delete Friend", isPresented: $showingDeleteError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(ConnectService.shared.lastError ?? FriendSyncService.shared.lastError ?? "Please check your connection and try again.")
+            }
             .navigationTitle(Text("Edit Friend"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -91,14 +104,19 @@ struct FriendEditView: View {
         dismiss()
     }
 
-    private func delete() {
-        Task {
-            if friend.connectionID != nil {
-                _ = await ConnectService.shared.disconnect(friend: friend, context: modelContext)
+    private func delete() async -> Bool {
+        deleteAttempted = true
+        if friend.connectionID != nil {
+            guard await ConnectService.shared.disconnect(friend: friend, context: modelContext) else {
+                return false
             }
-            await FriendSyncService.shared.delete(friend: friend)
-            modelContext.delete(friend)
         }
+        guard await FriendSyncService.shared.delete(friend: friend) else {
+            return false
+        }
+        modelContext.delete(friend)
+        deleteSucceeded = true
+        return true
     }
 }
 

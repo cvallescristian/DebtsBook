@@ -18,6 +18,7 @@ struct FriendDetailView: View {
     @State private var showingDisconnectConfirmation: Bool = false
     @State private var showingSignInRequired: Bool = false
     @State private var isSyncingExpenses: Bool = false
+    @State private var showingDisconnectError: Bool = false
     var authService = AuthService.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -234,7 +235,16 @@ struct FriendDetailView: View {
             confirmLabel: "Disconnect",
             successMessage: "Disconnected from \(friend.name)"
         ) {
-            Task { await ConnectService.shared.disconnect(friend: friend, context: modelContext) }
+            let succeeded = await ConnectService.shared.disconnect(friend: friend, context: modelContext)
+            if !succeeded {
+                showingDisconnectError = true
+            }
+            return succeeded
+        }
+        .alert("Couldn't Disconnect", isPresented: $showingDisconnectError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(ConnectService.shared.lastError ?? "Please check your connection and try again.")
         }
         .task {
             await refreshFromRemote()

@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import Auth
 import UniformTypeIdentifiers
+import UIKit
 
 struct ProfileView: View {
 
@@ -12,6 +13,7 @@ struct ProfileView: View {
     @State private var showingResetAppConfirmation = false
     @State private var authService = AuthService.shared
     @State private var exportURL: URL?
+    @State private var showingExportShareSheet = false
     @State private var showingImporter = false
     @State private var importResultMessage: String?
     @State private var showingImportResult = false
@@ -52,13 +54,11 @@ struct ProfileView: View {
                     Toggle("Require Face ID", isOn: $requireFaceID)
                 }
                 Section {
-                    if let exportURL {
-                        ShareLink(item: exportURL) {
-                            Label("Export Data", systemImage: "square.and.arrow.up")
-                        }
-                    } else {
-                        Label("Preparing export…", systemImage: "square.and.arrow.up")
-                            .foregroundStyle(.secondary)
+                    Button {
+                        exportURL = try? BackupService.exportData(context: modelContext)
+                        showingExportShareSheet = exportURL != nil
+                    } label: {
+                        Label("Export Data", systemImage: "square.and.arrow.up")
                     }
                     Button {
                         showingImporter = true
@@ -90,7 +90,8 @@ struct ProfileView: View {
                 confirmLabel: "Delete All Expenses",
                 successMessage: "All expenses deleted"
             ) {
-                deleteAllExpenses()
+                await deleteAllExpenses()
+                return true
             }
             .confirmationModal(
                 isPresented: $showingResetAppConfirmation,
@@ -99,7 +100,8 @@ struct ProfileView: View {
                 confirmLabel: "Reset App",
                 successMessage: "App reset"
             ) {
-                resetApp()
+                await resetApp()
+                return true
             }
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
                 switch result {
@@ -120,8 +122,10 @@ struct ProfileView: View {
             } message: {
                 Text(importResultMessage ?? "")
             }
-            .task {
-                exportURL = try? BackupService.exportData(context: modelContext)
+            .sheet(isPresented: $showingExportShareSheet, onDismiss: cleanupExport) {
+                if let exportURL {
+                    ShareSheet(activityItems: [exportURL])
+                }
             }
             .sheet(isPresented: $showingSignIn) {
                 SignInRequiredView()
@@ -130,17 +134,47 @@ struct ProfileView: View {
         }
     }
 
-    private func deleteAllExpenses() {
+    private func cleanupExport() {
+        if let exportURL {
+            try? FileManager.default.removeItem(at: exportURL)
+        }
+        exportURL = nil
+    }
+
+    private func deleteAllExpenses() async {
+        await deleteSyncedRemoteData()
         deleteAll(Expense.self)
         deleteAll(Activity.self)
     }
 
-    private func resetApp() {
+    private func resetApp() async {
+        let friends = (try? modelContext.fetch(FetchDescriptor<Friend>())) ?? []
+        for friend in friends where friend.connectionID != nil {
+            _ = await ConnectService.shared.disconnect(friend: friend, context: modelContext)
+            await FriendSyncService.shared.delete(friend: friend)
+        }
         deleteAll(Expense.self)
         deleteAll(Activity.self)
         deleteAll(Friend.self)
         deleteAll(ExpenseGroup.self)
         deleteAll(Budget.self)
+    }
+
+    /// Best-effort remote cleanup for expenses/activities of connected friends, without
+    /// tearing down the connection itself (unlike resetApp, this keeps friends connected).
+    private func deleteSyncedRemoteData() async {
+        let expenses = (try? modelContext.fetch(FetchDescriptor<Expense>())) ?? []
+        for expense in expenses {
+            if let remoteID = expense.remoteID, expense.friend?.linkedUserID != nil {
+                await ExpenseSyncService.shared.delete(remoteID: remoteID)
+            }
+        }
+        let activities = (try? modelContext.fetch(FetchDescriptor<Activity>())) ?? []
+        for activity in activities {
+            if let remoteID = activity.remoteID, activity.friend?.linkedUserID != nil {
+                await ActivitySyncService.shared.delete(remoteID: remoteID)
+            }
+        }
     }
 
     /// Fetches and deletes every instance individually instead of using the batch `delete(model:)`
@@ -154,6 +188,16 @@ struct ProfileView: View {
     }
 }
 
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
 
 #Preview {
     ProfileView()

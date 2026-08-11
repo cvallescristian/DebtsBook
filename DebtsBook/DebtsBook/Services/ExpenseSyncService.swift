@@ -42,8 +42,21 @@ final class ExpenseSyncService {
     /// pullExpenses so a pull racing a not-yet-uploaded create can't delete it out from under
     /// the in-flight push (which would then crash reading properties off the deleted model).
     private var pendingPushIDs: Set<UUID> = []
+    private let pendingPushLock = NSLock()
 
     private init() {}
+
+    private func markPendingPush(_ remoteID: UUID) {
+        pendingPushLock.withLock { _ = pendingPushIDs.insert(remoteID) }
+    }
+
+    private func isPendingPush(_ remoteID: UUID) -> Bool {
+        pendingPushLock.withLock { pendingPushIDs.contains(remoteID) }
+    }
+
+    private func clearPendingPush(_ remoteID: UUID) {
+        pendingPushLock.withLock { _ = pendingPushIDs.remove(remoteID) }
+    }
 
     func pullExpenses(into context: ModelContext, for friend: Friend) async {
         // Require linkedUserID (not just connectionID) — a pending, not-yet-accepted
@@ -101,7 +114,7 @@ final class ExpenseSyncService {
             let remoteIDs = Set(remoteExpenses.map { $0.id })
             for expense in friendsSyncedExpenses {
                 let expenseRemoteID = expense.remoteID!
-                if !remoteIDs.contains(expenseRemoteID) && !pendingPushIDs.contains(expenseRemoteID) {
+                if !remoteIDs.contains(expenseRemoteID) && !isPendingPush(expenseRemoteID) {
                     context.delete(expense)
                 }
             }
@@ -143,6 +156,8 @@ final class ExpenseSyncService {
         guard let currentUserID = AuthService.shared.session?.user.id else { return }
         let remoteID = expense.remoteID ?? UUID()
         expense.remoteID = remoteID
+        markPendingPush(remoteID)
+        defer { clearPendingPush(remoteID) }
         let paidByUserID = expense.paidByMe ? currentUserID : await resolveOtherMember(of: connectionID, excluding: currentUserID)
         let upsert = ExpenseUpsert(
             id: remoteID,
@@ -155,8 +170,6 @@ final class ExpenseSyncService {
             comment: expense.comment,
             date: expense.date
         )
-        pendingPushIDs.insert(remoteID)
-        defer { pendingPushIDs.remove(remoteID) }
         do {
             try await client.from("expenses").upsert(upsert).execute()
             lastError = nil
@@ -173,6 +186,10 @@ final class ExpenseSyncService {
 
     func delete(expense: Expense) async {
         guard let remoteID = expense.remoteID else { return }
+        await delete(remoteID: remoteID)
+    }
+
+    func delete(remoteID: UUID) async {
         do {
             try await client.from("expenses").delete().eq("id", value: remoteID).execute()
             lastError = nil

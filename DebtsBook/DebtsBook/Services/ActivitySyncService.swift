@@ -34,8 +34,21 @@ final class ActivitySyncService {
     /// Same race guard as ExpenseSyncService.pendingPushIDs — excludes an in-flight push's
     /// remoteID from the reconcile-delete pass in pullActivities.
     private var pendingPushIDs: Set<UUID> = []
+    private let pendingPushLock = NSLock()
 
     private init() {}
+
+    private func markPendingPush(_ remoteID: UUID) {
+        pendingPushLock.withLock { _ = pendingPushIDs.insert(remoteID) }
+    }
+
+    private func isPendingPush(_ remoteID: UUID) -> Bool {
+        pendingPushLock.withLock { pendingPushIDs.contains(remoteID) }
+    }
+
+    private func clearPendingPush(_ remoteID: UUID) {
+        pendingPushLock.withLock { _ = pendingPushIDs.remove(remoteID) }
+    }
 
     func pullActivities(into context: ModelContext, for friend: Friend) async {
         guard friend.linkedUserID != nil, let connectionID = friend.connectionID else { return }
@@ -90,7 +103,7 @@ final class ActivitySyncService {
             let remoteIDs = Set(remoteActivities.map { $0.id })
             for activity in friendsSyncedActivities {
                 let activityRemoteID = activity.remoteID!
-                if !remoteIDs.contains(activityRemoteID) && !pendingPushIDs.contains(activityRemoteID) {
+                if !remoteIDs.contains(activityRemoteID) && !isPendingPush(activityRemoteID) {
                     context.delete(activity)
                 }
             }
@@ -109,6 +122,8 @@ final class ActivitySyncService {
         guard let currentUserID = AuthService.shared.session?.user.id else { return }
         let remoteID = activity.remoteID ?? UUID()
         activity.remoteID = remoteID
+        markPendingPush(remoteID)
+        defer { clearPendingPush(remoteID) }
         // The actor is always whoever's device is pushing this — an Activity is only ever
         // pushed right after the local device itself performed the action. paidByMe is a
         // separate, direction-of-debt concept (mirrors expenses.paid_by_user_id) and needs
@@ -127,8 +142,6 @@ final class ActivitySyncService {
             paid_by_user_id: paidByUserID,
             date: activity.date
         )
-        pendingPushIDs.insert(remoteID)
-        defer { pendingPushIDs.remove(remoteID) }
         do {
             try await client.from("activities").upsert(upsert).execute()
             lastError = nil
@@ -138,13 +151,18 @@ final class ActivitySyncService {
     }
 
     func pushAll(for friend: Friend, activities: [Activity]) async {
-        for activity in activities where activity.friend?.persistentModelID == friend.persistentModelID {
+        for activity in activities
+        where activity.friend?.persistentModelID == friend.persistentModelID && activity.performedByMe {
             await push(activity: activity)
         }
     }
 
     func delete(activity: Activity) async {
         guard let remoteID = activity.remoteID else { return }
+        await delete(remoteID: remoteID)
+    }
+
+    func delete(remoteID: UUID) async {
         do {
             try await client.from("activities").delete().eq("id", value: remoteID).execute()
             lastError = nil

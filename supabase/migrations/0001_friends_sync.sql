@@ -8,10 +8,10 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
-create policy "Profiles are viewable by any authenticated user"
+create policy "Users can view their own profile"
   on public.profiles for select
   to authenticated
-  using (true);
+  using (auth.uid() = id);
 
 create policy "Users manage their own profile"
   on public.profiles for update
