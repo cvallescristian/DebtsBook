@@ -23,3 +23,21 @@ enum Secrets {
 EOF
 
 echo "Generated $SECRETS_PATH"
+
+# Xcode Cloud archives with automatic package resolution disabled: it refuses to
+# build unless DebtsBook.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+# is already there and readable by the workflow's Xcode version. That file is
+# committed, but resolving explicitly here regenerates it in the format this
+# Xcode understands, so the build can't fail on it.
+if [ -n "$CI_DERIVED_DATA_PATH" ]; then
+    xcodebuild -resolvePackageDependencies \
+        -project "$CI_PRIMARY_REPOSITORY_PATH/DebtsBook.xcodeproj" \
+        -scheme DebtsBook \
+        -derivedDataPath "$CI_DERIVED_DATA_PATH"
+else
+    xcodebuild -resolvePackageDependencies \
+        -project "$CI_PRIMARY_REPOSITORY_PATH/DebtsBook.xcodeproj" \
+        -scheme DebtsBook
+fi
+
+echo "Resolved Swift package dependencies"
