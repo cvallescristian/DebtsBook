@@ -28,6 +28,16 @@ Built with SwiftUI and [SwiftData](https://developer.apple.com/documentation/swi
 
 No external dependencies — everything is built on native SwiftUI and SwiftData.
 
+## Testing
+
+Unit tests live in `DebtsBookTests/` and cover model logic, budget warnings, activity wording, data-integrity repair, and backup export/import. Run them with `⌘U` in Xcode, or:
+
+```
+xcodebuild test -project DebtsBook.xcodeproj -scheme DebtsBook -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest'
+```
+
+They also run automatically on every pull request via [GitHub Actions](.github/workflows/tests.yml).
+
 ## Project Structure
 
 ```

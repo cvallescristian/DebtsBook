@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Add placeholder Secrets.swift
+        run: cp DebtsBook/DebtsBook/Secrets.swift.example DebtsBook/DebtsBook/Secrets.swift
+
+      - name: Resolve Swift package dependencies
+        run: xcodebuild -resolvePackageDependencies -project DebtsBook.xcodeproj -scheme DebtsBook
+
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -project DebtsBook.xcodeproj \
+            -scheme DebtsBook \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -skipMacroValidation
