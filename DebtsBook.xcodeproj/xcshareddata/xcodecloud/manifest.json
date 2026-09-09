@@ -1,0 +1,9 @@
+{
+  "id" : "d663f995-1b4b-4009-9d4a-7d9ae9ab28e0",
+  "targets" : [
+    {
+      "id" : "f0e99052-ab3c-4223-982e-d617a7361850",
+      "name" : "DebtsBook"
+    }
+  ]
+}
