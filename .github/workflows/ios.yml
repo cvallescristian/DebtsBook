@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Create placeholder Secrets.swift
+        # Secrets.swift is git-ignored; tests don't hit Supabase, so the template's placeholders are enough to compile.
+        run: cp DebtsBook/DebtsBook/Secrets.swift.example DebtsBook/DebtsBook/Secrets.swift
       - name: Install iOS simulator runtime
         # The runner's preinstalled runtimes can be older than IPHONEOS_DEPLOYMENT_TARGET.
         run: xcodebuild -downloadPlatform iOS
