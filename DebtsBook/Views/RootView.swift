@@ -24,11 +24,15 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {
                 isUnlocked = false
+                SyncCoordinator.scheduleBackgroundRefresh()
+            } else if newPhase == .active {
+                Task { await SyncCoordinator.syncAll(into: modelContext) }
             }
         }
         .onChange(of: authService.isSignedIn) { _, isSignedIn in
             if isSignedIn {
-                Task { await FriendSyncService.shared.pullFriends(into: modelContext) }
+                NotificationService.shared.registerIfEnabled()
+                Task { await SyncCoordinator.syncAll(into: modelContext) }
             }
         }
     }

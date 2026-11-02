@@ -39,6 +39,7 @@
 		40473F7D30295BCF001639B7 /* Exceptions for "DebtsBook" folder in "DebtsBook" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				DebtsBook.entitlements,
 				Info.plist,
 			);
 			target = 40A4BF212FFF179300E9206F /* DebtsBook */;
@@ -384,6 +385,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DebtsBook/Info.plist;
+				CODE_SIGN_ENTITLEMENTS = DebtsBook/DebtsBook.entitlements;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -418,6 +420,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DebtsBook/Info.plist;
+				CODE_SIGN_ENTITLEMENTS = DebtsBook/DebtsBook.entitlements;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

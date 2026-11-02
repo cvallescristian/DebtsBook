@@ -8,6 +8,7 @@ struct ProfileView: View {
 
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("requireFaceID") private var requireFaceID: Bool = false
+    @AppStorage(NotificationService.enabledKey) private var notifyFriendChanges: Bool = false
     @Environment(\.modelContext) private var modelContext
     @State private var showingDeleteExpensesConfirmation = false
     @State private var showingResetAppConfirmation = false
@@ -49,6 +50,24 @@ struct ProfileView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                }
+                Section {
+                    Toggle("Friend Changes", isOn: $notifyFriendChanges)
+                        .onChange(of: notifyFriendChanges) { _, isOn in
+                            guard isOn else {
+                                Task { await NotificationService.shared.disable() }
+                                return
+                            }
+                            Task {
+                                if await !NotificationService.shared.enable() {
+                                    notifyFriendChanges = false
+                                }
+                            }
+                        }
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("Get notified when a connected friend adds, edits, or settles a shared expense.")
                 }
                 Section("Security") {
                     Toggle("Require Face ID", isOn: $requireFaceID)
