@@ -28,6 +28,7 @@ struct ExpenseNewView: View {
     init(friend: Friend? = nil, pending: PendingExpense? = nil) {
         self.pending = pending
         _friendID = State(initialValue: friend?.persistentModelID)
+        _isPersonal = State(initialValue: friend == nil)
         if let pending {
             _title = State(initialValue: pending.merchant)
             _amount = State(initialValue: pending.amount)

@@ -25,7 +25,7 @@ final class PendingExpenseUITests: XCTestCase {
         openExpenses()
         XCTAssertTrue(pendingRow.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Countdown"].exists)
-        let header = app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "Pending from Apple Pay")).firstMatch
+        let header = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Pending · 1")).firstMatch
         XCTAssertTrue(header.exists)
     }
 
@@ -37,6 +37,15 @@ final class PendingExpenseUITests: XCTestCase {
         XCTAssertEqual(app.textFields["Title (e.g. Groceries)"].value as? String, "Countdown")
         let amount = app.textFields["Amount"].value as? String ?? ""
         XCTAssertTrue(amount.contains("42.50"), "Amount was \(amount)")
+        XCTAssertTrue(app.buttons["Just Me"].isSelected)
+    }
+
+    func testNewExpenseFromExpensesTabStartsAsJustMe() {
+        openExpenses()
+        app.buttons["Add Expense"].tap()
+
+        XCTAssertTrue(app.navigationBars["New Expense"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Just Me"].isSelected)
     }
 
     func testLoggingPendingCreatesExpenseAndClearsPending() {
