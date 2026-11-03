@@ -30,3 +30,6 @@ fastlane/test_output
 
 # Secrets
 DebtsBook/DebtsBook/Secrets.swift
+
+# Supabase CLI local state (project ref, DB host)
+supabase/.temp/
