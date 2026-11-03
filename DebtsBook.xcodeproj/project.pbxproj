@@ -10,9 +10,9 @@
 		0F7291BD8646F656C757009F /* DataIntegrityServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */; };
 		40473F7C3029586D001639B7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 40473F7B3029586D001639B7 /* Supabase */; };
 		66FACA0181AA59D6151FCDE5 /* ExpenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* NotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */; };
 		7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */; };
 		8DA857E202E0B432B23DE6D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1DC63035704386DEA489FB1 /* Foundation.framework */; };
+		A1B2C3D4E5F60718293A4B5C /* NotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */; };
 		D4DE3CF6C72FE152E0B861AC /* BudgetModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D445085544E9F18E33936348 /* BudgetModelTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -29,8 +29,8 @@
 /* Begin PBXFileReference section */
 		40A4BF222FFF179300E9206F /* DebtsBook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DebtsBook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExpenseModelTests.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationServiceTests.swift; sourceTree = "<group>"; };
 		9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataIntegrityServiceTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationServiceTests.swift; sourceTree = "<group>"; };
 		C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivityModelTests.swift; sourceTree = "<group>"; };
 		D445085544E9F18E33936348 /* BudgetModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BudgetModelTests.swift; sourceTree = "<group>"; };
 		F1DC63035704386DEA489FB1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -41,7 +41,6 @@
 		40473F7D30295BCF001639B7 /* Exceptions for "DebtsBook" folder in "DebtsBook" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				DebtsBook.entitlements,
 				Info.plist,
 			);
 			target = 40A4BF212FFF179300E9206F /* DebtsBook */;
@@ -383,13 +382,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DebtsBook/DebtsBook.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B2FVUYF72Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DebtsBook/Info.plist;
-				CODE_SIGN_ENTITLEMENTS = DebtsBook/DebtsBook.entitlements;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -400,7 +399,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Cristian.DebtsBook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -418,13 +417,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DebtsBook/DebtsBook.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B2FVUYF72Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DebtsBook/Info.plist;
-				CODE_SIGN_ENTITLEMENTS = DebtsBook/DebtsBook.entitlements;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "DebtsBook uses Face ID to keep your friends and expenses private.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -435,7 +434,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Cristian.DebtsBook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
