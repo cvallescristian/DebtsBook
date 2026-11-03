@@ -54,12 +54,17 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func save(deviceToken: Data) async {
-        let token = deviceToken.map { String(format: "%02x", $0) }.joined()
+        let token = Self.hexString(from: deviceToken)
         UserDefaults.standard.set(token, forKey: Self.tokenKey)
         guard UserDefaults.standard.bool(forKey: Self.enabledKey),
               let userID = AuthService.shared.session?.user.id else { return }
         let upsert = DeviceTokenUpsert(token: token, user_id: userID, env: apnsEnvironment)
         try? await client.from("device_tokens").upsert(upsert, onConflict: "token").execute()
+    }
+
+    /// APNs expects the token as lowercase hex in the request path.
+    static func hexString(from deviceToken: Data) -> String {
+        deviceToken.map { String(format: "%02x", $0) }.joined()
     }
 
     /// Must run before sign-out: RLS only lets the owning user delete the row.

@@ -12,6 +12,7 @@
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { type ActivityRecord, isStale, message, recipientFor, timingSafeEqual } from "./logic.ts";
 
 const BUNDLE_ID = "Cristian.DebtsBook";
 const APNS_HOSTS: Record<string, string> = {
@@ -19,29 +20,10 @@ const APNS_HOSTS: Record<string, string> = {
   production: "https://api.push.apple.com",
 };
 
-interface ActivityRecord {
-  id: string;
-  connection_id: string;
-  type: string;
-  expense_title: string;
-  amount: number;
-  actor_user_id: string | null;
-  date: string;
-}
-
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
-
-function timingSafeEqual(a: string, b: string): boolean {
-  const ea = new TextEncoder().encode(a);
-  const eb = new TextEncoder().encode(b);
-  if (ea.length !== eb.length) return false;
-  let diff = 0;
-  for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
-  return diff === 0;
-}
 
 function base64url(data: ArrayBuffer | Uint8Array | string): string {
   const bytes = typeof data === "string"
@@ -84,25 +66,6 @@ async function apnsJWT(): Promise<string> {
   return token;
 }
 
-function message(activity: ActivityRecord, friendName: string): { title: string; body: string } {
-  const title = `“${activity.expense_title}”`;
-  const amount = `$${Number(activity.amount).toFixed(2)}`;
-  switch (activity.type) {
-    case "created":
-      return { title: `${friendName} added an expense`, body: `${title} · ${amount}` };
-    case "updated":
-      return { title: `${friendName} updated an expense`, body: `${title} · ${amount}` };
-    case "deleted":
-      return { title: `${friendName} deleted an expense`, body: title };
-    case "paid":
-      return { title: `${friendName} marked an expense as paid`, body: `${title} · ${amount}` };
-    case "settledUp":
-      return { title: `${friendName} settled up with you`, body: amount };
-    default:
-      return { title: `${friendName} changed a shared expense`, body: title };
-  }
-}
-
 Deno.serve(async (req) => {
   const secret = Deno.env.get("WEBHOOK_SECRET");
   if (!secret || !timingSafeEqual(req.headers.get("x-webhook-secret") ?? "", secret)) {
@@ -115,8 +78,7 @@ Deno.serve(async (req) => {
   }
   const activity = payload.record as ActivityRecord;
   if (!activity?.actor_user_id) return new Response("No actor", { status: 200 });
-  // A newly linked friend's whole history is inserted in one go; only notify about fresh changes.
-  if (Date.now() - new Date(activity.date).getTime() > 10 * 60 * 1000) {
+  if (isStale(activity.date, Date.now())) {
     return new Response("Stale", { status: 200 });
   }
 
@@ -127,10 +89,8 @@ Deno.serve(async (req) => {
     .single();
   if (!connection) return new Response("No connection", { status: 200 });
 
-  const recipient = connection.user_a === activity.actor_user_id ? connection.user_b : connection.user_a;
-  if (!recipient || recipient === activity.actor_user_id) {
-    return new Response("No recipient", { status: 200 });
-  }
+  const recipient = recipientFor(connection, activity.actor_user_id);
+  if (!recipient) return new Response("No recipient", { status: 200 });
 
   const { data: tokens } = await supabase
     .from("device_tokens")
