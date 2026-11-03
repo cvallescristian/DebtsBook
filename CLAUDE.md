@@ -27,7 +27,9 @@ In practice it's usually faster to open `DebtsBook.xcodeproj` in Xcode and use �
 
 ### Local setup
 
-Supabase-backed features (auth, friend linking, sync) require `DebtsBook/DebtsBook/Secrets.swift`, copied from `Secrets.swift.example` and filled in with a Supabase project's URL/anon key. This file is git-ignored. Without it, sync-related code won't have valid credentials — the rest of the app (adding friends/expenses/groups/budgets locally) doesn't depend on it.
+Supabase-backed features (auth, friend linking, sync) require `DebtsBook/DebtsBook/Secrets.swift`, copied from `Secrets.swift.example` and filled in with each Supabase project's URL/anon key. This file is git-ignored.
+
+There are two Supabase projects: **staging** (Debug builds: Xcode, simulators) and **production** (Release builds: TestFlight, App Store). Apply new migrations and deploy Edge Functions to staging first, test there, then repeat on production. Each project has its own `WEBHOOK_SECRET` and database webhook. Without it, sync-related code won't have valid credentials — the rest of the app (adding friends/expenses/groups/budgets locally) doesn't depend on it.
 
 ## Architecture
 
