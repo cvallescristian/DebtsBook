@@ -27,6 +27,10 @@ final class AuthService: NSObject {
     }
 
     private func restoreSession() async {
+        guard !TestModelContainer.isUITesting else {
+            isRestoringSession = false
+            return
+        }
         session = try? await client.auth.session
         isRestoringSession = false
     }

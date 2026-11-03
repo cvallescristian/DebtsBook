@@ -6,7 +6,7 @@ enum PreviewSampleData {
 
     static let container: ModelContainer = {
         let container = try! ModelContainer(
-            for: Friend.self, Expense.self, Activity.self, Budget.self, ExpenseGroup.self,
+            for: Schema(AppModelContainer.modelTypes),
             configurations: .init(isStoredInMemoryOnly: true)
         )
 

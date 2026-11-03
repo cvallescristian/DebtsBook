@@ -23,8 +23,16 @@ struct ExpenseNewView: View {
     @State private var comment: String = ""
     @FocusState private var isInputFocused: Bool
 
-    init(friend: Friend? = nil) {
+    private let pending: PendingExpense?
+
+    init(friend: Friend? = nil, pending: PendingExpense? = nil) {
+        self.pending = pending
         _friendID = State(initialValue: friend?.persistentModelID)
+        if let pending {
+            _title = State(initialValue: pending.merchant)
+            _amount = State(initialValue: pending.amount)
+            _date = State(initialValue: pending.date)
+        }
     }
 
     private var selectedGroup: ExpenseGroup? {
@@ -150,6 +158,9 @@ struct ExpenseNewView: View {
         modelContext.insert(expense)
         let activity = Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend)
         modelContext.insert(activity)
+        if let pending {
+            modelContext.delete(pending)
+        }
         if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.push(expense: expense) }
             Task { await ActivitySyncService.shared.push(activity: activity) }

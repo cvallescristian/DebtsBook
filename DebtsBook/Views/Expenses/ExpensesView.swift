@@ -11,9 +11,11 @@ private enum ExpenseFilter: String, CaseIterable {
 struct ExpensesView: View {
     @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
+    @State private var loggingPending: PendingExpense?
     @State private var selectedFilter: ExpenseFilter = .all
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
+    @Query(sort: \PendingExpense.date, order: .reverse) private var pendingExpenses: [PendingExpense]
 
     private var filteredExpenses: [Expense] {
         switch selectedFilter {
@@ -37,6 +39,29 @@ struct ExpensesView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
+                if !pendingExpenses.isEmpty {
+                    Section {
+                        ForEach(pendingExpenses) { pending in
+                            Button {
+                                loggingPending = pending
+                            } label: {
+                                PendingExpenseRow(pending: pending)
+                            }
+                            .tint(.primary)
+                            .accessibilityIdentifier("pendingExpenseRow")
+                            .swipeActions {
+                                Button("Dismiss", role: .destructive) {
+                                    modelContext.delete(pending)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Pending from Apple Pay")
+                    } footer: {
+                        Text("Tap to log as an expense, or swipe to dismiss.")
+                    }
+                }
+
                 Section {
                     ForEach(filteredExpenses) { expense in
                         Button {
@@ -49,7 +74,7 @@ struct ExpensesView: View {
                     }
                 }
             } .overlay {
-                if filteredExpenses.isEmpty {
+                if filteredExpenses.isEmpty && pendingExpenses.isEmpty {
                     ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses will show up here."))
                 }
             }
@@ -73,10 +98,38 @@ struct ExpensesView: View {
             .sheet(item: $editingExpense) { expense in
                 ExpenseEditView(expense: expense)
             }
+            .sheet(item: $loggingPending) { pending in
+                ExpenseNewView(pending: pending)
+            }
         }
-        
+
     }
-    
+
+}
+
+private struct PendingExpenseRow: View {
+    let pending: PendingExpense
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(pending.merchant)
+                    .font(.headline)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(pending.amount, format: .currency(code: "NZD"))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var subtitle: String {
+        let date = pending.date.formatted(date: .abbreviated, time: .shortened)
+        guard let card = pending.cardName, !card.isEmpty else { return date }
+        return "\(card) · \(date)"
+    }
 }
 
 
