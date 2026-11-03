@@ -79,5 +79,6 @@ final class PendingExpenseUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Apple Pay Import"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Open Shortcuts"].exists)
+        XCTAssertTrue(app.buttons["Open Full Guide"].exists)
     }
 }

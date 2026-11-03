@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apple Pay Import · DebtsBook</title>
+<meta name="description" content="Set up the Shortcuts automation that sends your Apple Pay payments to DebtsBook as pending expenses.">
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --text: #1c1c1e;
+    --muted: #6e6e73;
+    --accent: #007aff;
+    --orange: #ff9500;
+    --border: #e5e5ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --card: #1c1c1e;
+      --text: #f2f2f7;
+      --muted: #98989d;
+      --accent: #0a84ff;
+      --orange: #ff9f0a;
+      --border: #38383a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 20px; margin: 32px 0 12px; }
+  p { margin: 0 0 12px; }
+  .lead { color: var(--muted); }
+  .card { background: var(--card); border-radius: 16px; padding: 16px 20px; margin: 12px 0; }
+  .tabs { display: flex; gap: 4px; background: var(--border); border-radius: 10px; padding: 3px; margin: 24px 0 8px; }
+  .tabs button {
+    flex: 1; border: 0; border-radius: 8px; padding: 8px; font: inherit; font-size: 15px;
+    background: transparent; color: var(--text); cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { background: var(--card); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .detected { font-size: 13px; color: var(--muted); margin: 0 0 8px; min-height: 1.5em; }
+  ol { margin: 0; padding-left: 24px; }
+  ol li { margin: 0 0 12px; }
+  ol li:last-child { margin-bottom: 0; }
+  ul.fields { margin: 8px 0 0; padding-left: 20px; }
+  .ui { font-weight: 600; }
+  .token {
+    display: inline-block; padding: 0 8px; border-radius: 6px; font-size: 15px;
+    background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent);
+  }
+  .note { border-left: 4px solid var(--orange); }
+  .note strong { color: var(--orange); }
+  [hidden] { display: none; }
+  footer { margin-top: 40px; font-size: 13px; color: var(--muted); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Apple Pay Import</h1>
+  <p class="lead">Each Apple Pay payment you make appears in DebtsBook under <span class="ui">Expenses › Pending</span>, ready to log or dismiss. You set this up once in the Shortcuts app.</p>
+
+  <div class="card">
+    <p><strong>Why the Shortcuts app?</strong> Apple doesn't let apps read Apple Pay payments directly. A personal automation in Shortcuts can, and only you can create it.</p>
+    <p style="margin:0">Payments stay on your iPhone. DebtsBook never uploads them.</p>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="iOS version">
+    <button role="tab" id="tab-27" aria-controls="steps-27" aria-selected="true">iOS 27</button>
+    <button role="tab" id="tab-26" aria-controls="steps-26" aria-selected="false">iOS 26</button>
+  </div>
+  <p class="detected" id="detected"></p>
+
+  <section id="steps-27" role="tabpanel" aria-labelledby="tab-27">
+    <div class="card">
+      <ol>
+        <li>Open <span class="ui">Shortcuts</span>, go to <span class="ui">Automation</span> and tap <span class="ui">+</span>.</li>
+        <li>In the <span class="ui">Describe a shortcut</span> box, type: <em>When I pay with Apple Pay using any card, run the DebtsBook action "Log Apple Pay Payment" immediately.</em></li>
+        <li>If it asks which shortcut to run, pick <span class="ui">Log Apple Pay Payment</span> (not "Ask Each Time").</li>
+        <li>Tap <span class="ui">Edit</span>. The top block must read <span class="ui">When Any Card is tapped</span>. Remove any other step with its <span class="ui">✕</span>, then search <span class="ui">DebtsBook</span> and add <span class="ui">Log Apple Pay Payment</span> under it.</li>
+        <li>Link each field to the payment: tap the field, choose the <span class="ui">Transaction</span> variable, tap its bubble, then pick:
+          <ul class="fields">
+            <li>Merchant → <span class="token">Merchant</span></li>
+            <li>Amount → <span class="token">Amount</span></li>
+            <li>Card → <span class="token">Card or Pass</span></li>
+          </ul>
+        </li>
+        <li>Tap the <span class="ui">›</span> next to "is tapped": keep <span class="ui">Any Category</span> and <span class="ui">Any Merchant</span>, turn <span class="ui">Automation</span> on and <span class="ui">Notify</span> off.</li>
+        <li>Tap <span class="ui">‹</span> to save. The Automation list shows <em>When I tap a Wallet pass or payment card</em>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="steps-26" role="tabpanel" aria-labelledby="tab-26" hidden>
+    <div class="card">
+      <ol>
+        <li>Open <span class="ui">Shortcuts</span>, go to the <span class="ui">Automation</span> tab and tap <span class="ui">+</span> (New Automation).</li>
+        <li>Choose <span class="ui">Transaction</span>.</li>
+        <li>Select all your cards, keep every category, choose <span class="ui">Run Immediately</span> and tap <span class="ui">Next</span>.</li>
+        <li>Tap <span class="ui">New Blank Automation</span>, search <span class="ui">DebtsBook</span> and add <span class="ui">Log Apple Pay Payment</span>.</li>
+        <li>Link each field to the payment: tap the field, choose <span class="ui">Shortcut Input</span>, tap its bubble, then pick:
+          <ul class="fields">
+            <li>Merchant → <span class="token">Merchant</span></li>
+            <li>Amount → <span class="token">Amount</span></li>
+            <li>Card → <span class="token">Card or Pass</span></li>
+          </ul>
+        </li>
+        <li>Tap <span class="ui">Done</span>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <h2>Test it</h2>
+  <div class="card note">
+    <p><strong>Don't use the ▶︎ button.</strong> It runs without a real payment, so you'll see <em>Couldn't read the amount ""</em>. That's expected.</p>
+    <p style="margin:0">Instead, buy something small with Apple Pay, then open DebtsBook. A badge appears on <span class="ui">Expenses</span> and the payment is listed under <span class="ui">Pending</span>.</p>
+  </div>
+
+  <h2>Good to know</h2>
+  <div class="card">
+    <ol>
+      <li>Only Apple Pay payments are captured, not physical cards or bank transfers.</li>
+      <li>A payment logged twice within a minute (for example from both iPhone and Apple Watch) is only added once.</li>
+      <li>Refunds come through as a positive amount. Swipe to dismiss them.</li>
+    </ol>
+  </div>
+
+  <footer>DebtsBook · <a href="https://github.com/cvallescristian/DebtsBook">Source on GitHub</a></footer>
+</main>
+<script>
+  (function () {
+    var tabs = { "27": document.getElementById("tab-27"), "26": document.getElementById("tab-26") };
+    var panels = { "27": document.getElementById("steps-27"), "26": document.getElementById("steps-26") };
+
+    function select(version) {
+      Object.keys(tabs).forEach(function (key) {
+        var on = key === version;
+        tabs[key].setAttribute("aria-selected", on ? "true" : "false");
+        panels[key].hidden = !on;
+      });
+    }
+
+    Object.keys(tabs).forEach(function (key) {
+      tabs[key].addEventListener("click", function () { select(key); });
+    });
+
+    var match = navigator.userAgent.match(/OS (\d+)_\d+(?:_\d+)? like Mac OS X/);
+    if (match) {
+      var major = parseInt(match[1], 10);
+      var version = major >= 27 ? "27" : "26";
+      document.getElementById("detected").textContent = "Showing steps for iOS " + version + " (detected on this device).";
+      select(version);
+    }
+  })();
+</script>
+</body>
+</html>
