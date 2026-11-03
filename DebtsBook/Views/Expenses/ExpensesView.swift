@@ -49,14 +49,24 @@ struct ExpensesView: View {
                             }
                             .tint(.primary)
                             .accessibilityIdentifier("pendingExpenseRow")
-                            .swipeActions {
-                                Button("Dismiss", role: .destructive) {
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
                                     modelContext.delete(pending)
+                                } label: {
+                                    Label("Dismiss", systemImage: "xmark")
                                 }
+                            }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    loggingPending = pending
+                                } label: {
+                                    Label("Log", systemImage: "square.and.pencil")
+                                }
+                                .tint(.blue)
                             }
                         }
                     } header: {
-                        Text("Pending from Apple Pay")
+                        Label("Pending · \(pendingExpenses.count)", systemImage: "clock")
                     } footer: {
                         Text("Tap to log as an expense, or swipe to dismiss.")
                     }
@@ -111,17 +121,27 @@ private struct PendingExpenseRow: View {
     let pending: PendingExpense
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pending.merchant)
-                    .font(.headline)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            Image(systemName: "creditcard.fill")
+                .font(.subheadline)
+                .foregroundStyle(.orange)
+                .frame(width: 36, height: 36)
+                .background(.orange.opacity(0.15), in: Circle())
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(pending.merchant)
+                    Spacer()
+                    Text(pending.amount, format: .currency(code: "NZD"))
+                }
+                HStack {
+                    Text(subtitle)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("Pending")
+                        .foregroundColor(.orange)
+                }
+                .font(.caption)
             }
-            Spacer()
-            Text(pending.amount, format: .currency(code: "NZD"))
-                .foregroundStyle(.secondary)
         }
     }
 
