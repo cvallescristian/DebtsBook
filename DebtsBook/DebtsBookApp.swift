@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct DebtsBookApp: App {
 
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let container: ModelContainer
 
     init() {
@@ -18,6 +19,7 @@ struct DebtsBookApp: App {
             DataIntegrityService.repairDanglingRelationships(context: container.mainContext)
         }
         self.container = container
+        _ = NotificationService.shared
     }
 
     var body: some Scene {
@@ -28,5 +30,14 @@ struct DebtsBookApp: App {
                 }
         }
         .modelContainer(container)
+        .backgroundTask(.appRefresh(SyncCoordinator.backgroundTaskID)) { [container] in
+            await SyncCoordinator.runBackgroundRefresh(container: container)
+        }
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Task { await NotificationService.shared.save(deviceToken: deviceToken) }
     }
 }

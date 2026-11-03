@@ -135,7 +135,7 @@ struct FriendView: View {
             }
         }
         .refreshable {
-            await FriendSyncService.shared.pullFriends(into: modelContext)
+            await SyncCoordinator.syncAll(into: modelContext)
         }
     }
 

@@ -61,6 +61,7 @@ final class AuthService: NSObject {
     }
 
     func signOut() async {
+        await NotificationService.shared.removeDeviceToken()
         try? await client.auth.signOut()
         session = nil
     }
