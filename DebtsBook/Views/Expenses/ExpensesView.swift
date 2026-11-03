@@ -11,9 +11,11 @@ private enum ExpenseFilter: String, CaseIterable {
 struct ExpensesView: View {
     @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
+    @State private var loggingPending: PendingExpense?
     @State private var selectedFilter: ExpenseFilter = .all
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
+    @Query(sort: \PendingExpense.date, order: .reverse) private var pendingExpenses: [PendingExpense]
 
     private var filteredExpenses: [Expense] {
         switch selectedFilter {
@@ -37,6 +39,39 @@ struct ExpensesView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
+                if !pendingExpenses.isEmpty {
+                    Section {
+                        ForEach(pendingExpenses) { pending in
+                            Button {
+                                loggingPending = pending
+                            } label: {
+                                PendingExpenseRow(pending: pending)
+                            }
+                            .tint(.primary)
+                            .accessibilityIdentifier("pendingExpenseRow")
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    modelContext.delete(pending)
+                                } label: {
+                                    Label("Dismiss", systemImage: "xmark")
+                                }
+                            }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    loggingPending = pending
+                                } label: {
+                                    Label("Log", systemImage: "square.and.pencil")
+                                }
+                                .tint(.blue)
+                            }
+                        }
+                    } header: {
+                        Label("Pending · \(pendingExpenses.count)", systemImage: "clock")
+                    } footer: {
+                        Text("Tap to log as an expense, or swipe to dismiss.")
+                    }
+                }
+
                 Section {
                     ForEach(filteredExpenses) { expense in
                         Button {
@@ -49,7 +84,7 @@ struct ExpensesView: View {
                     }
                 }
             } .overlay {
-                if filteredExpenses.isEmpty {
+                if filteredExpenses.isEmpty && pendingExpenses.isEmpty {
                     ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses will show up here."))
                 }
             }
@@ -73,10 +108,48 @@ struct ExpensesView: View {
             .sheet(item: $editingExpense) { expense in
                 ExpenseEditView(expense: expense)
             }
+            .sheet(item: $loggingPending) { pending in
+                ExpenseNewView(pending: pending)
+            }
         }
-        
+
     }
-    
+
+}
+
+private struct PendingExpenseRow: View {
+    let pending: PendingExpense
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "creditcard.fill")
+                .font(.subheadline)
+                .foregroundStyle(.orange)
+                .frame(width: 36, height: 36)
+                .background(.orange.opacity(0.15), in: Circle())
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(pending.merchant)
+                    Spacer()
+                    Text(pending.amount, format: .currency(code: "NZD"))
+                }
+                HStack {
+                    Text(subtitle)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("Pending")
+                        .foregroundColor(.orange)
+                }
+                .font(.caption)
+            }
+        }
+    }
+
+    private var subtitle: String {
+        let date = pending.date.formatted(date: .abbreviated, time: .shortened)
+        guard let card = pending.cardName, !card.isEmpty else { return date }
+        return "\(card) · \(date)"
+    }
 }
 
 

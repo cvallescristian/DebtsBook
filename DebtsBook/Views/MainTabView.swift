@@ -3,6 +3,8 @@ import SwiftData
 
 struct MainTabView: View {
 
+    @Query private var pendingExpenses: [PendingExpense]
+
     var body: some View {
         TabView {
             Tab("Friends", systemImage: "person.2") {
@@ -14,6 +16,7 @@ struct MainTabView: View {
             Tab("Expenses", systemImage: "dollarsign.circle") {
                 ExpensesView()
             }
+            .badge(pendingExpenses.count)
             Tab("Activity", systemImage: "clock.arrow.circlepath") {
                 ActivityView()
             }

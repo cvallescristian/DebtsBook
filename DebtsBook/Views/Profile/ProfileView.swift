@@ -69,6 +69,15 @@ struct ProfileView: View {
                 } footer: {
                     Text("Get notified when a connected friend adds, edits, or settles a shared expense.")
                 }
+                Section {
+                    NavigationLink {
+                        ApplePayImportView()
+                    } label: {
+                        Label("Apple Pay Import", systemImage: "creditcard")
+                    }
+                } footer: {
+                    Text("Turn Apple Pay payments into pending expenses automatically.")
+                }
                 Section("Security") {
                     Toggle("Require Face ID", isOn: $requireFaceID)
                 }
@@ -177,6 +186,7 @@ struct ProfileView: View {
         deleteAll(Friend.self)
         deleteAll(ExpenseGroup.self)
         deleteAll(Budget.self)
+        deleteAll(PendingExpense.self)
     }
 
     /// Best-effort remote cleanup for expenses/activities of connected friends, without
