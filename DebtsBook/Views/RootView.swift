@@ -8,6 +8,7 @@ struct RootView: View {
     @AppStorage("requireFaceID") private var requireFaceID: Bool = false
     @State private var isUnlocked = false
     @State private var showingAccountSwitch = false
+    @State private var hasBeenInBackground = false
     @State private var authService = AuthService.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
@@ -26,21 +27,20 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {
                 isUnlocked = false
+                hasBeenInBackground = true
                 SyncCoordinator.scheduleBackgroundRefresh()
             } else if newPhase == .active {
                 Task { await SyncCoordinator.syncAll(into: modelContext) }
+                // UI tests open the sheet by backgrounding and reopening the app, so the test
+                // decides when it appears instead of a timer racing a slow simulator.
+                if hasBeenInBackground && TestModelContainer.isUITesting && ProcessInfo.processInfo.arguments.contains("-accountSwitch") {
+                    showingAccountSwitch = true
+                }
             }
         }
         .onChange(of: authService.isSignedIn) { _, isSignedIn in
             if isSignedIn {
                 checkAccountOwnership()
-            }
-        }
-        .task {
-            // Delayed so the test can open a tab with rows first, like a real sign-in from Profile.
-            if TestModelContainer.isUITesting && ProcessInfo.processInfo.arguments.contains("-accountSwitch") {
-                try? await Task.sleep(for: .seconds(3))
-                showingAccountSwitch = true
             }
         }
         .sheet(isPresented: $showingAccountSwitch) {

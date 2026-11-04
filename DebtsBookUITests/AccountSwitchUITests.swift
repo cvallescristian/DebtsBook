@@ -1,7 +1,8 @@
 import XCTest
 
-/// -accountSwitch opens the "data from another account" sheet over the seeded -uiTesting store
-/// (one pending Apple Pay payment), as if a different account had just signed in.
+/// With -accountSwitch, backgrounding and reopening the app opens the "data from another account"
+/// sheet over the seeded -uiTesting store (a pending payment, plus friend Sam with a "Dinner"
+/// expense), as if a different account had just signed in.
 final class AccountSwitchUITests: XCTestCase {
 
     private var app: XCUIApplication!
@@ -17,30 +18,36 @@ final class AccountSwitchUITests: XCTestCase {
         app.buttons["Erase and Switch"].firstMatch
     }
 
+    private func openAccountSwitchSheet() {
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(eraseButton.waitForExistence(timeout: 15))
+    }
+
     func testSheetOffersBackupEraseAndCancel() {
-        XCTAssertTrue(eraseButton.waitForExistence(timeout: 5))
+        openAccountSwitchSheet()
         XCTAssertTrue(app.buttons["Export Backup"].exists)
         XCTAssertTrue(app.buttons["Cancel and Sign Out"].exists)
     }
 
     func testCancelKeepsLocalData() {
-        XCTAssertTrue(eraseButton.waitForExistence(timeout: 5))
+        openAccountSwitchSheet()
         app.buttons["Cancel and Sign Out"].tap()
-        XCTAssertTrue(eraseButton.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(eraseButton.waitForNonExistence(timeout: 15))
 
         app.tabBars.buttons["Expenses"].tap()
-        XCTAssertTrue(app.buttons["pendingExpenseRow"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["pendingExpenseRow"].firstMatch.waitForExistence(timeout: 15))
     }
 
     func testEraseAndSwitchRemovesLocalData() {
         app.tabBars.buttons["Expenses"].tap()
-        XCTAssertTrue(app.staticTexts["Dinner"].waitForExistence(timeout: 5))
-        XCTAssertTrue(eraseButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Dinner"].waitForExistence(timeout: 15))
+        openAccountSwitchSheet()
         eraseButton.tap()
         app.buttons["Erase All Data"].tap()
-        XCTAssertTrue(eraseButton.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(eraseButton.waitForNonExistence(timeout: 15))
 
-        XCTAssertTrue(app.staticTexts["No Expenses"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No Expenses"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["pendingExpenseRow"].exists)
     }
 }

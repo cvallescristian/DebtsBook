@@ -25,6 +25,14 @@ Pick an available simulator name with `xcrun xctrace list devices`. Tests use th
 
 In practice it's usually faster to open `DebtsBook.xcodeproj` in Xcode and use ⌘B / ⌘U.
 
+### UI test rules
+
+UI tests (`DebtsBookUITests/`, launched with `-uiTesting`) must stay stable on slow CI runners:
+- Never use fixed timers, in tests or in test-only hooks in the app. Wait for something visible (`waitForExistence(timeout: 15)`).
+- The test drives triggers (a tap, backgrounding and reopening the app); the app must not change state on its own clock in test mode.
+- Put logic in unit tests; keep UI tests to checking that screens are wired up.
+- CI retries a failing test once (`-retry-tests-on-failure`) and uploads `TestResults.xcresult` on failure. Open it for screenshots before guessing.
+
 ### Local setup
 
 Supabase-backed features (auth, friend linking, sync) require `DebtsBook/DebtsBook/Secrets.swift`, copied from `Secrets.swift.example` and filled in with each Supabase project's URL/anon key. This file is git-ignored.
