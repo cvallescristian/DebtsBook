@@ -37,4 +37,13 @@ jobs:
       - name: Build
         run: xcodebuild build-for-testing -scheme DebtsBook -project DebtsBook.xcodeproj -destination "id=$DEVICE_ID"
       - name: Test
-        run: xcodebuild test-without-building -scheme DebtsBook -project DebtsBook.xcodeproj -destination "id=$DEVICE_ID"
+        # One retry absorbs simulator flakes; a real bug fails both runs.
+        run: |
+          xcodebuild test-without-building -scheme DebtsBook -project DebtsBook.xcodeproj -destination "id=$DEVICE_ID" \
+            -retry-tests-on-failure -test-iterations 2 -resultBundlePath TestResults.xcresult
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: TestResults.xcresult

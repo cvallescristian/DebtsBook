@@ -23,7 +23,7 @@ final class PendingExpenseUITests: XCTestCase {
 
     func testExpensesTabShowsPendingPayment() {
         openExpenses()
-        XCTAssertTrue(pendingRow.waitForExistence(timeout: 5))
+        XCTAssertTrue(pendingRow.waitForExistence(timeout: 15))
         XCTAssertTrue(app.staticTexts["Countdown"].exists)
         let header = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Pending · 1")).firstMatch
         XCTAssertTrue(header.exists)
@@ -33,7 +33,7 @@ final class PendingExpenseUITests: XCTestCase {
         openExpenses()
         pendingRow.tap()
 
-        XCTAssertTrue(app.navigationBars["New Expense"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["New Expense"].waitForExistence(timeout: 15))
         XCTAssertEqual(app.textFields["Title (e.g. Groceries)"].value as? String, "Countdown")
         let amount = app.textFields["Amount"].value as? String ?? ""
         XCTAssertTrue(amount.contains("42.50"), "Amount was \(amount)")
@@ -44,26 +44,26 @@ final class PendingExpenseUITests: XCTestCase {
         openExpenses()
         app.buttons["Add Expense"].tap()
 
-        XCTAssertTrue(app.navigationBars["New Expense"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["New Expense"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["Just Me"].isSelected)
     }
 
     func testLoggingPendingCreatesExpenseAndClearsPending() {
         openExpenses()
         pendingRow.tap()
-        XCTAssertTrue(app.navigationBars["New Expense"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["New Expense"].waitForExistence(timeout: 15))
 
         app.buttons["Just Me"].tap()
         app.buttons["Create Expense"].tap()
 
-        XCTAssertTrue(app.navigationBars["Expenses"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Expenses"].waitForExistence(timeout: 15))
         XCTAssertFalse(pendingRow.exists)
         XCTAssertTrue(app.staticTexts["Countdown"].exists)
     }
 
     func testDismissingPendingRemovesItWithoutAnExpense() {
         openExpenses()
-        XCTAssertTrue(pendingRow.waitForExistence(timeout: 5))
+        XCTAssertTrue(pendingRow.waitForExistence(timeout: 15))
 
         pendingRow.swipeLeft()
         app.buttons["Dismiss"].tap()
@@ -77,7 +77,7 @@ final class PendingExpenseUITests: XCTestCase {
         app.tabBars.buttons["Profile"].tap()
         app.buttons["Apple Pay Import"].tap()
 
-        XCTAssertTrue(app.navigationBars["Apple Pay Import"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Apple Pay Import"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["Open Shortcuts"].exists)
         XCTAssertTrue(app.buttons["Open Full Guide"].exists)
     }

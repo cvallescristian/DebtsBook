@@ -187,6 +187,7 @@ struct ProfileView: View {
         deleteAll(ExpenseGroup.self)
         deleteAll(Budget.self)
         deleteAll(PendingExpense.self)
+        AccountOwnership.owner = nil
     }
 
     /// Best-effort remote cleanup for expenses/activities of connected friends, without

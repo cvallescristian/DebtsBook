@@ -25,6 +25,11 @@ enum TestModelContainer {
             configurations: .init(isStoredInMemoryOnly: true)
         )
         container.mainContext.insert(PendingExpense(merchant: "Countdown", amount: Decimal(string: "42.50")!, cardName: "Visa"))
+        if ProcessInfo.processInfo.arguments.contains("-accountSwitch") {
+            let friend = Friend(name: "Sam")
+            container.mainContext.insert(friend)
+            container.mainContext.insert(Expense(title: "Dinner", amount: 30, friend: friend))
+        }
         try? container.mainContext.save()
         return container
     }

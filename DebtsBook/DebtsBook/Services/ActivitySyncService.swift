@@ -52,7 +52,7 @@ final class ActivitySyncService {
 
     func pullActivities(into context: ModelContext, for friend: Friend) async {
         guard friend.linkedUserID != nil, let connectionID = friend.connectionID else { return }
-        guard let currentUserID = AuthService.shared.session?.user.id else { return }
+        guard let currentUserID = AuthService.shared.syncUserID else { return }
         do {
             let remoteActivities: [RemoteActivity] = try await client
                 .from("activities")
@@ -119,7 +119,7 @@ final class ActivitySyncService {
         // direction against until the connection is actually accepted.
         guard activity.friend?.linkedUserID != nil else { return }
         guard let connectionID = activity.friend?.connectionID else { return }
-        guard let currentUserID = AuthService.shared.session?.user.id else { return }
+        guard let currentUserID = AuthService.shared.syncUserID else { return }
         let remoteID = activity.remoteID ?? UUID()
         activity.remoteID = remoteID
         markPendingPush(remoteID)

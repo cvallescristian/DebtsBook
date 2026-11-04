@@ -10,11 +10,12 @@
 		0F7291BD8646F656C757009F /* DataIntegrityServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */; };
 		40473F7C3029586D001639B7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 40473F7B3029586D001639B7 /* Supabase */; };
 		66FACA0181AA59D6151FCDE5 /* ExpenseModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */; };
-		B3C4D5E6F708192A3B4C5D6E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */; };
-		B2C3D4E5F60718293A4B5C6D /* PendingExpenseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */; };
 		7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */; };
 		8DA857E202E0B432B23DE6D2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1DC63035704386DEA489FB1 /* Foundation.framework */; };
 		A1B2C3D4E5F60718293A4B5C /* NotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */; };
+		B2C3D4E5F60718293A4B5C6D /* PendingExpenseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */; };
+		B2C3D4E5F60718293A4B5C7D /* AccountOwnershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C7E /* AccountOwnershipTests.swift */; };
+		B3C4D5E6F708192A3B4C5D6E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */; };
 		D4DE3CF6C72FE152E0B861AC /* BudgetModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D445085544E9F18E33936348 /* BudgetModelTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -38,15 +39,16 @@
 /* Begin PBXFileReference section */
 		40A4BF222FFF179300E9206F /* DebtsBook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DebtsBook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExpenseModelTests.swift; sourceTree = "<group>"; };
-		B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
-		B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingExpenseTests.swift; sourceTree = "<group>"; };
 		9D9DAA625C8F6CA9064E7A07 /* DataIntegrityServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataIntegrityServiceTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationServiceTests.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingExpenseTests.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C7E /* AccountOwnershipTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AccountOwnershipTests.swift; sourceTree = "<group>"; };
+		B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
+		C1D2E3F4A5B6C7D8E9F0A102 /* DebtsBookUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DebtsBookUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivityModelTests.swift; sourceTree = "<group>"; };
 		D445085544E9F18E33936348 /* BudgetModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BudgetModelTests.swift; sourceTree = "<group>"; };
 		F1DC63035704386DEA489FB1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		FB445D667B903BB7542F1E36 /* DebtsBookTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DebtsBookTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C1D2E3F4A5B6C7D8E9F0A102 /* DebtsBookUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DebtsBookUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -110,6 +112,7 @@
 				57625B57EAF9E6CBD7FD78C9 /* ExpenseModelTests.swift */,
 				B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */,
 				B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */,
+				B2C3D4E5F60718293A4B5C7E /* AccountOwnershipTests.swift */,
 				A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */,
 				C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */,
 			);
@@ -289,6 +292,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C1D2E3F4A5B6C7D8E9F0A104 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C8DE3809CB46741B58801330 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -298,15 +308,9 @@
 				66FACA0181AA59D6151FCDE5 /* ExpenseModelTests.swift in Sources */,
 				B3C4D5E6F708192A3B4C5D6E /* BackupServiceTests.swift in Sources */,
 				B2C3D4E5F60718293A4B5C6D /* PendingExpenseTests.swift in Sources */,
+				B2C3D4E5F60718293A4B5C7D /* AccountOwnershipTests.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* NotificationServiceTests.swift in Sources */,
 				7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C1D2E3F4A5B6C7D8E9F0A104 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
