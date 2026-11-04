@@ -18,6 +18,15 @@ final class AuthService: NSObject {
 
     var isSignedIn: Bool { session != nil }
 
+    /// Set once AccountOwnership confirms the local store belongs to the signed-in account.
+    var confirmedOwnerID: UUID?
+
+    /// The user ID sync is allowed to act as: nil until ownership is confirmed.
+    var syncUserID: UUID? {
+        guard let userID = session?.user.id, userID == confirmedOwnerID else { return nil }
+        return userID
+    }
+
     private var currentAppleNonce: String?
 
     private override init() {
@@ -67,6 +76,7 @@ final class AuthService: NSObject {
         await NotificationService.shared.removeDeviceToken()
         try? await client.auth.signOut()
         session = nil
+        confirmedOwnerID = nil
     }
 
     func prepareAppleRequest(_ request: ASAuthorizationAppleIDRequest) {

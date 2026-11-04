@@ -43,7 +43,7 @@ final class ConnectService {
     /// redeem, FriendSyncService.pullFriends notices the connection just became accepted
     /// (linkedUserID resolves) and pushes the full history at that point instead.
     func createInvite(for friend: Friend) async -> String? {
-        guard let userID = AuthService.shared.session?.user.id else { return nil }
+        guard let userID = AuthService.shared.syncUserID else { return nil }
         do {
             let connectionID: UUID
             if let existing = friend.connectionID {
@@ -73,7 +73,7 @@ final class ConnectService {
     /// minting a new one (and leaving the old one dangling, redeemable, and confusing).
     func pendingInviteCode(for friend: Friend) async -> String? {
         guard let connectionID = friend.connectionID,
-              let userID = AuthService.shared.session?.user.id else { return nil }
+              let userID = AuthService.shared.syncUserID else { return nil }
         do {
             let invites: [PendingInvite] = try await client
                 .from("invites")

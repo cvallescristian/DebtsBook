@@ -57,7 +57,7 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         let token = Self.hexString(from: deviceToken)
         UserDefaults.standard.set(token, forKey: Self.tokenKey)
         guard UserDefaults.standard.bool(forKey: Self.enabledKey),
-              let userID = AuthService.shared.session?.user.id else { return }
+              let userID = AuthService.shared.syncUserID else { return }
         let upsert = DeviceTokenUpsert(token: token, user_id: userID, env: apnsEnvironment)
         try? await client.from("device_tokens").upsert(upsert, onConflict: "token").execute()
     }

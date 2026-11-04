@@ -27,7 +27,7 @@ final class FriendSyncService {
     private init() {}
 
     func pullFriends(into context: ModelContext) async {
-        guard let userID = AuthService.shared.session?.user.id else { return }
+        guard let userID = AuthService.shared.syncUserID else { return }
         do {
             let remoteFriends: [RemoteFriend] = try await client
                 .from("friends")
@@ -90,7 +90,7 @@ final class FriendSyncService {
     }
 
     func push(friend: Friend) async {
-        guard let userID = AuthService.shared.session?.user.id else { return }
+        guard let userID = AuthService.shared.syncUserID else { return }
         let remoteID = friend.remoteID ?? UUID()
         friend.remoteID = remoteID
         do {

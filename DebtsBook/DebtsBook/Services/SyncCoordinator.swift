@@ -12,7 +12,7 @@ enum SyncCoordinator {
     private static var isSyncing = false
 
     static func syncAll(into context: ModelContext) async {
-        guard AuthService.shared.isSignedIn, !isSyncing else { return }
+        guard AuthService.shared.syncUserID != nil, !isSyncing else { return }
         isSyncing = true
         defer { isSyncing = false }
         await FriendSyncService.shared.pullFriends(into: context)

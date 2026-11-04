@@ -63,7 +63,7 @@ final class ExpenseSyncService {
         // invite has nothing to pull yet, and pulling early risks reconciling against an
         // empty result before history is ever transferred.
         guard friend.linkedUserID != nil, let connectionID = friend.connectionID else { return }
-        guard let currentUserID = AuthService.shared.session?.user.id else { return }
+        guard let currentUserID = AuthService.shared.syncUserID else { return }
         do {
             let remoteExpenses: [RemoteExpense] = try await client
                 .from("expenses")
@@ -153,7 +153,7 @@ final class ExpenseSyncService {
         // pushes everything in one go the moment that happens.
         guard expense.friend?.linkedUserID != nil else { return }
         guard let connectionID = expense.friend?.connectionID else { return }
-        guard let currentUserID = AuthService.shared.session?.user.id else { return }
+        guard let currentUserID = AuthService.shared.syncUserID else { return }
         let remoteID = expense.remoteID ?? UUID()
         expense.remoteID = remoteID
         markPendingPush(remoteID)
