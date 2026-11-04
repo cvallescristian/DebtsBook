@@ -19,7 +19,6 @@ final class AuthService: NSObject {
     var isSignedIn: Bool { session != nil }
 
     private var currentAppleNonce: String?
-    private var appleSignInContinuation: CheckedContinuation<Void, Never>?
 
     private override init() {
         super.init()
@@ -70,24 +69,38 @@ final class AuthService: NSObject {
         session = nil
     }
 
-    func signInWithApple() async {
+    func prepareAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
         lastError = nil
         let nonce = Self.randomNonceString()
         currentAppleNonce = nonce
-
-        let provider = ASAuthorizationAppleIDProvider()
-        let request = provider.createRequest()
         request.requestedScopes = [.fullName, .email]
         request.nonce = Self.sha256(nonce)
+    }
 
-        let controller = ASAuthorizationController(authorizationRequests: [request])
-        controller.delegate = self
-        controller.presentationContextProvider = self
-
-        await withCheckedContinuation { continuation in
-            appleSignInContinuation = continuation
-            controller.performRequests()
+    func completeAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+        switch result {
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let tokenData = credential.identityToken,
+                  let idToken = String(data: tokenData, encoding: .utf8) else {
+                lastError = "Could not sign in with Apple (missing token)."
+                return
+            }
+            guard let nonce = currentAppleNonce else {
+                lastError = "Could not sign in with Apple (missing nonce)."
+                return
+            }
+            do {
+                session = try await client.auth.signInWithIdToken(credentials: .init(provider: .apple, idToken: idToken, nonce: nonce))
+            } catch {
+                lastError = error.localizedDescription
+            }
+        case .failure(let error):
+            if (error as? ASAuthorizationError)?.code != .canceled {
+                lastError = error.localizedDescription
+            }
         }
+        currentAppleNonce = nil
     }
 
     private static func randomNonceString(length: Int = 32) -> String {
@@ -108,44 +121,5 @@ final class AuthService: NSObject {
     private static func sha256(_ input: String) -> String {
         let hashed = SHA256.hash(data: Data(input.utf8))
         return hashed.compactMap { String(format: "%02x", $0) }.joined()
-    }
-}
-
-extension AuthService: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-
-    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
-    }
-
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-              let tokenData = credential.identityToken,
-              let idToken = String(data: tokenData, encoding: .utf8),
-              let nonce = currentAppleNonce else {
-            lastError = "Could not sign in with Apple."
-            appleSignInContinuation?.resume()
-            appleSignInContinuation = nil
-            return
-        }
-        Task {
-            do {
-                session = try await client.auth.signInWithIdToken(credentials: .init(provider: .apple, idToken: idToken, nonce: nonce))
-            } catch {
-                lastError = error.localizedDescription
-            }
-            appleSignInContinuation?.resume()
-            appleSignInContinuation = nil
-        }
-    }
-
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-        if (error as? ASAuthorizationError)?.code != .canceled {
-            lastError = error.localizedDescription
-        }
-        appleSignInContinuation?.resume()
-        appleSignInContinuation = nil
     }
 }
