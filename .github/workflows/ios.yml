@@ -19,7 +19,14 @@ jobs:
         run: cp DebtsBook/DebtsBook/Secrets.swift.example DebtsBook/DebtsBook/Secrets.swift
       - name: Install iOS simulator runtime
         # The runner's preinstalled runtimes can be older than IPHONEOS_DEPLOYMENT_TARGET.
-        run: xcodebuild -downloadPlatform iOS
+        # Retried because the download intermittently fails with "Unable to connect to simulator".
+        run: |
+          for attempt in 1 2 3; do
+            xcodebuild -downloadPlatform iOS && exit 0
+            echo "Attempt $attempt failed, retrying in 15s..."
+            sleep 15
+          done
+          exit 1
       - name: Pick simulator
         run: |
           device_id=$(xcodebuild -showdestinations -scheme DebtsBook -project DebtsBook.xcodeproj 2>/dev/null \
