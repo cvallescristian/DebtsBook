@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct AuthView: View {
 
@@ -8,6 +9,7 @@ struct AuthView: View {
     @State private var errorMessage: String?
     @State private var code: String = ""
     @State private var isVerifyingCode = false
+    @Environment(\.colorScheme) private var colorScheme
     private var authService = AuthService.shared
 
     var body: some View {
@@ -59,6 +61,23 @@ struct AuthView: View {
                 }
                 .buttonStyle(.bordered)
             } else {
+                SignInWithAppleButton(.signIn) { request in
+                    authService.prepareAppleRequest(request)
+                } onCompletion: { result in
+                    Task {
+                        await authService.completeAppleSignIn(result)
+                        errorMessage = authService.lastError
+                    }
+                }
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                .frame(height: 50)
+                .padding(.horizontal)
+                .id(colorScheme)
+
+                Text("or")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
                 TextField("Email", text: $email)
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
