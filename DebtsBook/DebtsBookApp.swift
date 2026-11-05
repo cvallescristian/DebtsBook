@@ -6,9 +6,16 @@ enum AppModelContainer {
     /// Every @Model type. All containers (app, tests, previews) build from this one list.
     static let modelTypes: [any PersistentModel.Type] = [
         Friend.self, Expense.self, Activity.self, Budget.self, ExpenseGroup.self, PendingExpense.self,
+        SyncTombstone.self,
     ]
 
     static let shared: ModelContainer = {
+        let container = makeContainer()
+        SyncChangeTracker.start(observing: container.mainContext)
+        return container
+    }()
+
+    private static func makeContainer() -> ModelContainer {
         // Under the unit test host, avoid touching the real on-disk store — and reuse the
         // single shared in-memory container the tests also use, since SwiftData traps if two
         // separate containers for the same @Model types are both alive in one process.
@@ -21,7 +28,7 @@ enum AppModelContainer {
         let container = try! ModelContainer(for: Schema(modelTypes))
         DataIntegrityService.repairDanglingRelationships(context: container.mainContext)
         return container
-    }()
+    }
 }
 
 @main

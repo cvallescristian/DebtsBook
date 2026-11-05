@@ -20,9 +20,12 @@ struct BackupServiceTests {
     /// Fields deliberately left out: sync state is rebuilt on re-link, and pending Apple Pay
     /// payments are short-lived, device-only drafts.
     private static let notBackedUp: [String: Set<String>] = [
-        "Friend": ["remoteID", "linkedUserID", "connectionID", "lastSyncedAt"],
-        "Expense": ["remoteID"],
-        "Activity": ["remoteID"],
+        "Friend": ["remoteID", "linkedUserID", "connectionID", "lastSyncedAt", "isDirty"],
+        "Expense": ["remoteID", "isDirty"],
+        "Activity": ["remoteID", "isDirty"],
+        "ExpenseGroup": ["remoteID", "isDirty"],
+        "Budget": ["remoteID", "isDirty"],
+        "SyncTombstone": ["table", "remoteID", "date"],
         "PendingExpense": ["merchant", "amount", "cardName", "date"],
     ]
 
@@ -71,7 +74,8 @@ struct BackupServiceTests {
         ana.createdAt = date
         ana.photoData = Data([1, 2, 3])
         ana.iconName = "star"
-        ana.remoteID = UUID()
+        let exportedRemoteID = UUID()
+        ana.remoteID = exportedRemoteID
         context.insert(ana)
 
         let food = ExpenseGroup(name: "Food")
@@ -98,7 +102,8 @@ struct BackupServiceTests {
         #expect(friend.createdAt == date)
         #expect(friend.photoData == Data([1, 2, 3]))
         #expect(friend.iconName == "star")
-        #expect(friend.remoteID == nil)
+        // Sync links aren't imported; SyncChangeTracker may give the new row a fresh ID.
+        #expect(friend.remoteID != exportedRemoteID)
 
         let group = try #require(try context.fetch(FetchDescriptor<ExpenseGroup>()).only)
         #expect(group.name == "Food")

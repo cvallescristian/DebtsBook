@@ -6,6 +6,8 @@ class Friend {
     var name: String = ""
     var createdAt: Date = Date()
     var remoteID: UUID?
+    /// Changed locally since the last push (set by SyncChangeTracker).
+    var isDirty: Bool = false
     var linkedUserID: UUID?
     var connectionID: UUID?
     @Attribute(.externalStorage) var photoData: Data?
