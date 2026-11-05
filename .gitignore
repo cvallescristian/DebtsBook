@@ -33,3 +33,6 @@ DebtsBook/DebtsBook/Secrets.swift
 
 # Supabase CLI local state (project ref, DB host)
 supabase/.temp/
+
+# Claude Code worktrees (separate git checkouts)
+.claude/worktrees/
