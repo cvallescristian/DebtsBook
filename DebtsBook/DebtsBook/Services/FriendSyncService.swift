@@ -8,6 +8,8 @@ private struct RemoteFriend: Decodable {
     let name: String
     let linked_user_id: UUID?
     let connection_id: UUID?
+    let icon_name: String?
+    let deleted_at: Date?
 }
 
 private struct FriendUpsert: Encodable {
@@ -31,7 +33,7 @@ final class FriendSyncService {
         do {
             let remoteFriends: [RemoteFriend] = try await client
                 .from("friends")
-                .select("id, name, linked_user_id, connection_id")
+                .select("id, name, linked_user_id, connection_id, icon_name, deleted_at")
                 .eq("owner_id", value: userID)
                 .execute()
                 .value
@@ -43,7 +45,16 @@ final class FriendSyncService {
 
             var newlyLinkedFriends: [Friend] = []
 
-            for remote in remoteFriends {
+            // Friends deleted on another of this owner's devices.
+            SyncChangeTracker.applyingSyncChanges(in: context) {
+                for remote in remoteFriends where remote.deleted_at != nil {
+                    if let local = byRemoteID[remote.id] {
+                        context.delete(local)
+                    }
+                }
+            }
+
+            for remote in remoteFriends where remote.deleted_at == nil {
                 // connections.id cascades an ON DELETE SET NULL onto friends.connection_id,
                 // but linked_user_id has no such FK and is never cleared server-side — so a
                 // friend disconnected from the other side still arrives here with a stale
@@ -53,7 +64,10 @@ final class FriendSyncService {
 
                 if let local = byRemoteID[remote.id] {
                     let hadLinkedUser = local.linkedUserID != nil
-                    local.name = remote.name
+                    if !local.isDirty {
+                        local.name = remote.name
+                        local.iconName = remote.icon_name
+                    }
                     local.linkedUserID = resolvedLinkedUserID
                     local.connectionID = remote.connection_id
                     if !hadLinkedUser && local.linkedUserID != nil {
@@ -62,6 +76,7 @@ final class FriendSyncService {
                 } else {
                     let friend = Friend(name: remote.name)
                     friend.remoteID = remote.id
+                    friend.iconName = remote.icon_name
                     friend.linkedUserID = resolvedLinkedUserID
                     friend.connectionID = remote.connection_id
                     context.insert(friend)
@@ -79,8 +94,20 @@ final class FriendSyncService {
                 let allActivities = try context.fetch(FetchDescriptor<Activity>())
                 for friend in newlyLinkedFriends {
                     let friendExpenses = allExpenses.filter { $0.friend?.persistentModelID == friend.persistentModelID }
-                    await ExpenseSyncService.shared.pushAll(for: friend, expenses: friendExpenses)
                     let friendActivities = allActivities.filter { $0.friend?.persistentModelID == friend.persistentModelID }
+                    // Now shared: retire the owner-table copies (same remoteIDs move to the
+                    // connection tables via pushAll below).
+                    for expense in friendExpenses {
+                        if let remoteID = expense.remoteID {
+                            context.insert(SyncTombstone(table: "personal_expenses", remoteID: remoteID))
+                        }
+                    }
+                    for activity in friendActivities {
+                        if let remoteID = activity.remoteID {
+                            context.insert(SyncTombstone(table: "personal_activities", remoteID: remoteID))
+                        }
+                    }
+                    await ExpenseSyncService.shared.pushAll(for: friend, expenses: friendExpenses)
                     await ActivitySyncService.shared.pushAll(for: friend, activities: friendActivities)
                 }
             }
