@@ -72,11 +72,12 @@ struct GroupEditView: View {
 
     private func save() {
         group.name = name
+        DataStore.commit(modelContext)
         dismiss()
     }
 
     private func delete() {
-        modelContext.delete(group)
+        DataStore.delete(group, from: modelContext)
     }
 }
 

@@ -147,6 +147,8 @@ struct FriendView: View {
                 } label: {
                     HStack {
                         Text(group.name)
+                        SyncIcon(item: group)
+                            .font(.caption)
                         Spacer()
                         let total = expenses.filter { $0.group?.persistentModelID == group.persistentModelID }.reduce(0) { $0 + $1.amount }
                         Text(total, format: .currency(code: "NZD"))

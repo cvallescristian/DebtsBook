@@ -284,7 +284,7 @@ struct FriendDetailView: View {
             }
         }
         let activity = Activity(type: .settledUp, expenseTitle: "", friendName: friend.name, amount: abs(settledAmount), paidByMe: settledAmount > 0, friend: friend)
-        modelContext.insert(activity)
+        DataStore.insert(activity, into: modelContext)
         if isConnected {
             Task { await ActivitySyncService.shared.push(activity: activity) }
         }

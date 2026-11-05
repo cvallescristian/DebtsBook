@@ -24,6 +24,7 @@ struct ProfileView: View {
         NavigationStack {
             Form {
                 Section {
+                    SyncStatusRow(isSignedIn: authService.isSignedIn)
                     if let email = authService.session?.user.email {
                         Text(email)
                             .foregroundStyle(.secondary)
@@ -88,15 +89,22 @@ struct ProfileView: View {
                     } label: {
                         Label("Export Data", systemImage: "square.and.arrow.up")
                     }
-                    Button {
-                        showingImporter = true
-                    } label: {
-                        Label("Import Data", systemImage: "square.and.arrow.down")
+                    // Signed in, the account is the backup: importing would upload duplicates.
+                    if !authService.isSignedIn {
+                        Button {
+                            showingImporter = true
+                        } label: {
+                            Label("Import Data", systemImage: "square.and.arrow.down")
+                        }
                     }
                 } header: {
                     Text("Backup")
                 } footer: {
-                    Text("Export saves a JSON file with all your friends, expenses, groups, budgets, and activity. Import adds records from a previously exported file.")
+                    if authService.isSignedIn {
+                        Text("Your data is backed up to your account. Export saves a JSON snapshot of your friends, expenses, groups, budgets, and activity.")
+                    } else {
+                        Text("Export saves a JSON file with all your friends, expenses, groups, budgets, and activity. Import adds records from a previously exported file.")
+                    }
                 }
                 Section {
                     Button("Delete All Expenses", role: .destructive) {
@@ -213,7 +221,7 @@ struct ProfileView: View {
     private func deleteAll<T: PersistentModel>(_ type: T.Type) {
         let objects = (try? modelContext.fetch(FetchDescriptor<T>())) ?? []
         for object in objects {
-            modelContext.delete(object)
+            DataStore.delete(object, from: modelContext)
         }
     }
 }

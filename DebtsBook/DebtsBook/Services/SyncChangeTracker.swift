@@ -26,6 +26,18 @@ extension Expense: SyncedModel {
     var syncTable: String { friend?.linkedUserID == nil ? "personal_expenses" : "expenses" }
 }
 
+extension SyncedModel {
+    /// On the server as it is locally. Shared rows count once uploaded (their services push
+    /// every change immediately); owner rows also need no unpushed edits.
+    var isSynced: Bool {
+        guard remoteID != nil else { return false }
+        if SyncChangeTracker.sharedTables.contains(syncTable) {
+            return true
+        }
+        return !isDirty
+    }
+}
+
 extension Activity: SyncedModel {
     var syncTable: String { friend?.linkedUserID == nil ? "personal_activities" : "activities" }
 }
@@ -59,14 +71,33 @@ enum SyncChangeTracker {
         try? context.save()
     }
 
-    static func track(_ context: ModelContext) {
-        guard !isApplyingSyncChanges else { return }
+    /// Marks unsaved inserts and edits dirty right away (no save), so rows show "waiting to
+    /// sync" as soon as the user acts. Deletes still become tombstones at save time.
+    static func markPendingChanges(in context: ModelContext) {
         for case let model as any SyncedModel in context.insertedModelsArray + context.changedModelsArray {
             markDirty(model)
         }
+    }
+
+    static func track(_ context: ModelContext) {
+        guard !isApplyingSyncChanges else { return }
+        var changed = false
+        for case let model as any SyncedModel in context.insertedModelsArray + context.changedModelsArray {
+            markDirty(model)
+            changed = true
+        }
         for case let model as any SyncedModel in context.deletedModelsArray {
+            changed = true
             guard let remoteID = model.remoteID else { continue }
             context.insert(SyncTombstone(table: model.syncTable, remoteID: remoteID))
+        }
+        // Saves during a sync (its own pulled updates) must not schedule another one, or
+        // every sync triggers the next. Edits made meanwhile stay dirty for the next sync.
+        if changed && !SyncCoordinator.isSyncing {
+            // After this save completes, so the sync reads committed data.
+            Task { @MainActor in
+                SyncCoordinator.scheduleSync(in: context)
+            }
         }
     }
 
@@ -76,7 +107,15 @@ enum SyncChangeTracker {
     static let sharedTables: Set<String> = ["expenses", "activities"]
 
     private static func markDirty(_ model: some SyncedModel) {
-        if model.remoteID == nil && !sharedTables.contains(model.syncTable) {
+        // Shared rows are pushed by their own services as they change, so they're never
+        // "waiting": leaving them dirty would count them as pending forever.
+        if sharedTables.contains(model.syncTable) {
+            if model.isDirty {
+                model.isDirty = false
+            }
+            return
+        }
+        if model.remoteID == nil {
             model.remoteID = UUID()
         }
         if !model.isDirty {

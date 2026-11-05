@@ -118,15 +118,16 @@ struct BudgetEditView: View {
         if let existingBudget {
             existingBudget.amount = amount
             existingBudget.group = selectedGroup
+            DataStore.commit(modelContext)
         } else {
-            modelContext.insert(Budget(amount: amount, period: period, group: selectedGroup))
+            DataStore.insert(Budget(amount: amount, period: period, group: selectedGroup), into: modelContext)
         }
         dismiss()
     }
 
     private func delete() {
         guard let existingBudget else { return }
-        modelContext.delete(existingBudget)
+        DataStore.delete(existingBudget, from: modelContext)
     }
 }
 

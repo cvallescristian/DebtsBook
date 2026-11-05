@@ -156,11 +156,11 @@ struct ExpenseNewView: View {
         guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, group: isPersonal ? selectedGroup : nil, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
-        modelContext.insert(expense)
+        DataStore.insert(expense, into: modelContext)
         let activity = Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend)
-        modelContext.insert(activity)
+        DataStore.insert(activity, into: modelContext)
         if let pending {
-            modelContext.delete(pending)
+            DataStore.delete(pending, from: modelContext)
         }
         if expense.friend?.linkedUserID != nil {
             Task { await ExpenseSyncService.shared.push(expense: expense) }
