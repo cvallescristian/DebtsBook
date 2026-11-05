@@ -25,6 +25,10 @@ Pick an available simulator name with `xcrun xctrace list devices`. Tests use th
 
 In practice it's usually faster to open `DebtsBook.xcodeproj` in Xcode and use ⌘B / ⌘U.
 
+### Data writes go through DataStore
+
+Views change data only through `DataStore` (`DebtsBook/DebtsBook/Services/DataStore.swift`): `DataStore.insert`, `DataStore.delete`, and `DataStore.commit` after editing properties. It schedules a sync, which saves (logging the change as dirty/tombstone via `SyncChangeTracker`) and uploads. CI runs `scripts/check-data-store.sh`, which fails on `modelContext.insert/delete` in views.
+
 ### UI test rules
 
 UI tests (`DebtsBookUITests/`, launched with `-uiTesting`) must stay stable on slow CI runners:

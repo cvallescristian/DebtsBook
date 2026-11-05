@@ -157,6 +157,7 @@ struct ReportsView: View {
                         Spacer()
                         Text("of \(budgetForSelectedRange.amount, format: .currency(code: "NZD"))")
                             .foregroundStyle(.secondary)
+                        SyncIcon(item: budgetForSelectedRange)
                     }
                     .font(.caption)
                 }
@@ -209,6 +210,7 @@ struct ReportsView: View {
                     Spacer()
                     Text("of \(budget.amount, format: .currency(code: "NZD"))")
                         .foregroundStyle(.secondary)
+                    SyncIcon(item: budget)
                 }
                 .font(.caption)
             } else {

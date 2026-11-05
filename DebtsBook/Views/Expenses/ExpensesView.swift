@@ -51,7 +51,7 @@ struct ExpensesView: View {
                             .accessibilityIdentifier("pendingExpenseRow")
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    modelContext.delete(pending)
+                                    DataStore.delete(pending, from: modelContext)
                                 } label: {
                                     Label("Dismiss", systemImage: "xmark")
                                 }

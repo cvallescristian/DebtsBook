@@ -11,10 +11,14 @@ struct FriendRow: View {
             FriendAvatar(name: friend.name, photoData: friend.photoData, iconName: friend.iconName)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(friend.name)
-                    .font(.body)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                HStack(spacing: 6) {
+                    Text(friend.name)
+                        .font(.body)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    SyncIcon(item: friend)
+                        .font(.caption)
+                }
 
                 if friend.linkedUserID != nil {
                     Label("Connected", systemImage: "link.circle.fill")

@@ -55,8 +55,7 @@ struct FriendNewView: View {
         let friend = Friend(name: name)
         friend.photoData = photoData
         friend.iconName = iconName
-        modelContext.insert(friend)
-        Task { await FriendSyncService.shared.push(friend: friend) }
+        DataStore.insert(friend, into: modelContext)
         dismiss()
     }
 }

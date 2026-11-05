@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import Supabase
+import OSLog
 
 // Syncs everything that isn't shared through a connection (friends, groups, budgets, and
 // expenses/activity that are personal or with a not-yet-linked friend) to the owner-only
@@ -38,10 +39,18 @@ struct SupabaseSyncBackend: SyncBackend {
             .execute()
     }
 
+    /// Full date and time with milliseconds, e.g. 2026-11-05T09:59:00.000Z (Postgres rejects
+    /// a time on its own).
+    static func timestamp(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
+    }
+
     func fetchChanged<Row: Decodable>(_ table: String, since: Date?) async throws -> [Row] {
         var query = client.from(table).select()
         if let since {
-            query = query.gt("updated_at", value: since.ISO8601Format(.iso8601.time(includingFractionalSeconds: true)))
+            query = query.gt("updated_at", value: Self.timestamp(since))
         }
         return try await query.order("updated_at").execute().value
     }
@@ -68,11 +77,13 @@ private extension KeyedEncodingContainer {
     }
 }
 
+/// No connection_id or linked_user_id: links are owned by ConnectService and the invite RPC.
+/// A stale local link (e.g. data from before an update or another environment) would
+/// otherwise fail the friends foreign key and block the upload.
 struct SyncFriendRow: Encodable {
     let id: UUID
     let owner_id: UUID
     let name: String
-    let connection_id: UUID?
     let icon_name: String?
 
     func encode(to encoder: Encoder) throws {
@@ -80,12 +91,11 @@ struct SyncFriendRow: Encodable {
         try c.encode(id, forKey: .id)
         try c.encode(owner_id, forKey: .owner_id)
         try c.encode(name, forKey: .name)
-        try c.encodeNullable(connection_id, forKey: .connection_id)
         try c.encodeNullable(icon_name, forKey: .icon_name)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, owner_id, name, connection_id, icon_name
+        case id, owner_id, name, icon_name
     }
 }
 
@@ -194,8 +204,9 @@ struct OwnerSyncService {
     /// (server clock vs. transaction commit) would otherwise be skipped for good.
     static let cursorOverlap: TimeInterval = 60
 
+    private static let logger = Logger(subsystem: "Cristian.DebtsBook", category: "sync")
+
     static let pushOrder = ["friends", "expense_groups", "budgets", "personal_expenses", "personal_activities"]
-    static let pulledTables = ["expense_groups", "budgets", "personal_expenses", "personal_activities"]
 
     func sync() async throws {
         try await push()
@@ -216,10 +227,14 @@ struct OwnerSyncService {
         defaults.set(date, forKey: cursorKey(table))
     }
 
-    /// A table that has never been pulled for this owner: everything local uploads once,
-    /// so data created signed out (or before this build) reaches the server.
-    private func isFirstSync(_ table: String) -> Bool {
-        cursor(for: table) == nil
+    /// Recorded only after a successful upload of the table, never by a pull: a pull that ran
+    /// after a failed first upload must not make old local rows look already synced.
+    private func initialUploadKey(_ table: String) -> String {
+        "syncInitialUpload.\(ownerID.uuidString).\(table)"
+    }
+
+    func hasCompletedInitialUpload(_ table: String) -> Bool {
+        defaults.bool(forKey: initialUploadKey(table))
     }
 
     // MARK: Push
@@ -227,7 +242,7 @@ struct OwnerSyncService {
     func push() async throws {
         try await pushTombstones()
         try await pushRows(Friend.self, table: "friends") { friend in
-            SyncFriendRow(id: friend.remoteID!, owner_id: ownerID, name: friend.name, connection_id: friend.connectionID, icon_name: friend.iconName)
+            SyncFriendRow(id: friend.remoteID!, owner_id: ownerID, name: friend.name, icon_name: friend.iconName)
         }
         try await pushRows(ExpenseGroup.self, table: "expense_groups") { group in
             GroupRow(id: group.remoteID!, owner_id: ownerID, name: group.name)
@@ -263,15 +278,19 @@ struct OwnerSyncService {
         return .some(remoteID)
     }
 
+    /// Uploads this table's rows that need it: edited ones (dirty), ones never uploaded
+    /// (no remoteID, e.g. created before change tracking existed, as on builds up to 1.1),
+    /// and, once per owner, everything, so data from before this build reaches the server.
     private func pushRows<M: SyncedModel, Row: Encodable>(_ type: M.Type, table: String, row: (M) -> Row?) async throws {
-        let firstSync = isFirstSync(table)
+        let uploadAll = !hasCompletedInitialUpload(table)
         let models = try context.fetch(FetchDescriptor<M>()).filter {
-            $0.syncTable == table && ($0.isDirty || firstSync)
+            $0.syncTable == table && ($0.isDirty || $0.remoteID == nil || uploadAll)
         }
-        guard !models.isEmpty else { return }
         SyncChangeTracker.applyingSyncChanges(in: context) {
             for model in models where model.remoteID == nil {
                 model.remoteID = UUID()
+                // Stays dirty until the upload succeeds, so a failed attempt is retried.
+                model.isDirty = true
             }
         }
         var pushed: [M] = []
@@ -282,16 +301,38 @@ struct OwnerSyncService {
                 rows.append(built)
             }
         }
-        try await backend.upsert(rows, into: table)
+        let uploaded = try await upsertSkippingRejected(pushed, rows: rows, into: table)
         SyncChangeTracker.applyingSyncChanges(in: context) {
-            for model in pushed {
+            for model in uploaded {
                 model.isDirty = false
             }
         }
-        // Tables pulled elsewhere (friends) never get a cursor from pull(), so mark the
-        // one-time full upload as done here.
-        if firstSync && !Self.pulledTables.contains(table) {
-            setCursor(Date(), for: table)
+        if uploadAll {
+            defaults.set(true, forKey: initialUploadKey(table))
+        }
+    }
+
+    /// Uploads the batch; if the server rejects it, retries row by row so one bad row
+    /// (stays dirty, logged) can't block the rest. Network errors still throw.
+    private func upsertSkippingRejected<M: SyncedModel, Row: Encodable>(_ models: [M], rows: [Row], into table: String) async throws -> [M] {
+        do {
+            try await backend.upsert(rows, into: table)
+            return models
+        } catch let error as URLError {
+            throw error
+        } catch {
+            var uploaded: [M] = []
+            for (model, row) in zip(models, rows) {
+                do {
+                    try await backend.upsert([row], into: table)
+                    uploaded.append(model)
+                } catch let error as URLError {
+                    throw error
+                } catch {
+                    Self.logger.error("Skipped a \(table, privacy: .public) row the server rejected: \(String(describing: error), privacy: .public)")
+                }
+            }
+            return uploaded
         }
     }
 

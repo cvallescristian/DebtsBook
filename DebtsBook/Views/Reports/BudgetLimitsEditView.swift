@@ -38,7 +38,7 @@ struct BudgetLimitsEditView: View {
                         if globalBudget != nil {
                             Button(role: .destructive) {
                                 if let globalBudget {
-                                    modelContext.delete(globalBudget)
+                                    DataStore.delete(globalBudget, from: modelContext)
                                 }
                                 globalAmount = nil
                             } label: {
@@ -66,7 +66,7 @@ struct BudgetLimitsEditView: View {
                                     if existingBudget(for: group) != nil {
                                         Button(role: .destructive) {
                                             if let budget = existingBudget(for: group) {
-                                                modelContext.delete(budget)
+                                                DataStore.delete(budget, from: modelContext)
                                             }
                                             groupAmounts[group.persistentModelID] = nil
                                         } label: {
@@ -124,7 +124,7 @@ struct BudgetLimitsEditView: View {
             if let existing = globalBudget {
                 existing.amount = globalAmount
             } else {
-                modelContext.insert(Budget(amount: globalAmount, period: period))
+                DataStore.insert(Budget(amount: globalAmount, period: period), into: modelContext)
             }
         }
 
@@ -136,11 +136,12 @@ struct BudgetLimitsEditView: View {
                 if let existing {
                     existing.amount = amount
                 } else {
-                    modelContext.insert(Budget(amount: amount, period: period, group: group))
+                    DataStore.insert(Budget(amount: amount, period: period, group: group), into: modelContext)
                 }
             }
         }
 
+        DataStore.commit(modelContext)
         dismiss()
     }
 }

@@ -89,6 +89,36 @@ struct SyncChangeTrackerTests {
         try context.save()
 
         #expect(dinner.syncTable == "expenses")
-        #expect(dinner.isDirty && dinner.remoteID == nil)
+        #expect(!dinner.isDirty && dinner.remoteID == nil)
+        #expect(!dinner.isSynced)
+
+        dinner.remoteID = UUID()
+        #expect(dinner.isSynced)
+    }
+
+    @Test func dataStoreMarksEditsWaitingBeforeAnySave() throws {
+        let context = try makeContext()
+        let lunch = Expense(title: "Lunch", amount: 12)
+        context.insert(lunch)
+        try context.save()
+        SyncChangeTracker.applyingSyncChanges(in: context) { lunch.isDirty = false }
+        #expect(lunch.isSynced)
+
+        lunch.amount = 15
+        DataStore.commit(context)
+
+        #expect(lunch.isDirty)
+        #expect(!lunch.isSynced)
+    }
+
+    @Test func ownerRowIsSyncedOnlyWithoutUnpushedEdits() throws {
+        let context = try makeContext()
+        let lunch = Expense(title: "Lunch", amount: 12)
+        context.insert(lunch)
+        try context.save()
+        #expect(!lunch.isSynced)
+
+        SyncChangeTracker.applyingSyncChanges(in: context) { lunch.isDirty = false }
+        #expect(lunch.isSynced)
     }
 }

@@ -7,6 +7,11 @@ import SwiftData
 /// like the set_updated_at trigger, stamps updated_at on every write.
 private final class FakeSyncBackend: SyncBackend {
     var tables: [String: [UUID: [String: Any]]] = [:]
+    /// Rows the "server" refuses (like a foreign key violation), failing any batch containing them.
+    var rejectedIDs: Set<UUID> = []
+
+    struct Rejected: Error {}
+    var isOffline = false
     private var clock = Date(timeIntervalSince1970: 1_800_000_000)
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -29,6 +34,13 @@ private final class FakeSyncBackend: SyncBackend {
     }
 
     func upsert<Row: Encodable>(_ rows: [Row], into table: String) async throws {
+        if isOffline {
+            throw URLError(.notConnectedToInternet)
+        }
+        let objects = try rows.map { try JSONSerialization.jsonObject(with: encoder.encode($0)) as! [String: Any] }
+        if objects.contains(where: { rejectedIDs.contains(UUID(uuidString: $0["id"] as! String)!) }) {
+            throw Rejected()
+        }
         for row in rows {
             var object = try JSONSerialization.jsonObject(with: encoder.encode(row)) as! [String: Any]
             let id = UUID(uuidString: object["id"] as! String)!
@@ -104,6 +116,73 @@ struct OwnerSyncServiceTests {
         #expect(row["paid_by_me"] as? Bool == false)
         #expect(backend.row("friends", samID) != nil)
         #expect(!lunch.isDirty && !food.isDirty && !sam.isDirty)
+    }
+
+    /// A phone coming from build 1.1: old rows were never marked dirty and (except friends)
+    /// have no remoteID. Even if the first upload fails and a pull runs in between, the next
+    /// sync must upload all of it.
+    @Test func upgradeFromOldBuildUploadsEverythingEvenAfterAFailedFirstAttempt() async throws {
+        let context = try makeContext()
+        let ana = Friend(name: "Ana")
+        ana.remoteID = UUID()
+        let food = ExpenseGroup(name: "Food")
+        let budget = Budget(amount: 100, period: .week, group: food)
+        let lunch = Expense(title: "Lunch", amount: 12, group: food, date: date)
+        let dinner = Expense(title: "Dinner", amount: 30, friend: ana, date: date)
+        let activity = Activity(type: .created, expenseTitle: "Lunch", amount: 12, paidByMe: true, date: date)
+        SyncChangeTracker.applyingSyncChanges(in: context) {
+            for model in [ana, food, budget, lunch, dinner, activity] as [any PersistentModel] {
+                context.insert(model)
+            }
+        }
+        let service = makeService(context)
+
+        backend.isOffline = true
+        try? await service.push()
+        backend.isOffline = false
+        try await service.pull()
+        try await service.sync()
+
+        let uploaded: [(String, any SyncedModel)] = [
+            ("friends", ana), ("expense_groups", food), ("budgets", budget),
+            ("personal_expenses", lunch), ("personal_expenses", dinner), ("personal_activities", activity),
+        ]
+        for (table, model) in uploaded {
+            let remoteID = try #require(model.remoteID)
+            #expect(backend.row(table, remoteID) != nil, "\(table) row missing")
+            #expect(model.isSynced)
+        }
+    }
+
+    @Test func aRejectedRowDoesNotBlockTheRest() async throws {
+        let context = try makeContext()
+        let good = ExpenseGroup(name: "Food")
+        let bad = ExpenseGroup(name: "Broken")
+        context.insert(good)
+        context.insert(bad)
+        try context.save()
+        backend.rejectedIDs = [try #require(bad.remoteID)]
+
+        try await makeService(context).push()
+
+        let goodID = try #require(good.remoteID)
+        #expect(backend.row("expense_groups", goodID) != nil)
+        #expect(!good.isDirty)
+        #expect(bad.isDirty)
+    }
+
+    @Test func friendUploadLeavesLinksToTheInviteFlow() async throws {
+        let context = try makeContext()
+        let sam = Friend(name: "Sam")
+        sam.connectionID = UUID()
+        context.insert(sam)
+        try context.save()
+
+        try await makeService(context).push()
+
+        let samID = try #require(sam.remoteID)
+        let row = try #require(backend.row("friends", samID))
+        #expect(row["connection_id"] == nil)
     }
 
     @Test func clearingAReferenceSendsAnExplicitNull() async throws {

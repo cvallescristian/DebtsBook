@@ -27,6 +27,7 @@ struct ExpenseRow: View {
                 Text(expense.isPersonal ? "Personal" : expense.paidByLabel)
                 Text(expense.date, format: .dateTime.day().month().year())
                     .foregroundStyle(.secondary)
+                SyncIcon(item: expense)
                 Spacer()
                 if !expense.isPersonal {
                     Text(expense.isSettled ? "Paid" : "Unpaid")
@@ -77,12 +78,12 @@ private func toggleSettled(for expense: Expense, in modelContext: ModelContext) 
             if isConnected, let remoteID {
                 Task { await ActivitySyncService.shared.delete(remoteID: remoteID) }
             }
-            modelContext.delete(lastPaidActivity)
+            DataStore.delete(lastPaidActivity, from: modelContext)
         }
     } else {
         expense.isSettled = true
         let activity = Activity(type: .paid, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.owedAmount, paidByMe: expense.paidByMe, expense: expense, friend: expense.friend)
-        modelContext.insert(activity)
+        DataStore.insert(activity, into: modelContext)
         if isConnected {
             Task { await ActivitySyncService.shared.push(activity: activity) }
         }
@@ -90,6 +91,7 @@ private func toggleSettled(for expense: Expense, in modelContext: ModelContext) 
     if isConnected {
         Task { await ExpenseSyncService.shared.push(expense: expense) }
     }
+    DataStore.commit(modelContext)
 }
 
 

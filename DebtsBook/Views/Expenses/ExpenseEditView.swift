@@ -188,7 +188,7 @@ struct ExpenseEditView: View {
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
         let updateActivity = Activity(type: .updated, expenseTitle: expense.title, friendName: newFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: newFriend)
-        modelContext.insert(updateActivity)
+        DataStore.insert(updateActivity, into: modelContext)
         if friendChanged, previousFriend?.linkedUserID != nil, let previousRemoteID {
             // The expense moved off a connected friend — its old remote row belongs to a
             // connection it's no longer part of. Clear the id so a push under the new friend
@@ -205,13 +205,13 @@ struct ExpenseEditView: View {
 
     private func delete() {
         let deleteActivity = Activity(type: .deleted, expenseTitle: expense.title, friendName: expense.friend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, friend: expense.friend)
-        modelContext.insert(deleteActivity)
+        DataStore.insert(deleteActivity, into: modelContext)
         let remoteID = expense.remoteID
         if expense.friend?.linkedUserID != nil, let remoteID {
             Task { await ExpenseSyncService.shared.delete(remoteID: remoteID) }
             Task { await ActivitySyncService.shared.push(activity: deleteActivity) }
         }
-        modelContext.delete(expense)
+        DataStore.delete(expense, from: modelContext)
     }
 }
 

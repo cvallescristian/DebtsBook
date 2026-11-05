@@ -38,6 +38,11 @@ struct RootView: View {
                 }
             }
         }
+        .onAppear {
+            SyncStatus.shared.startMonitoring {
+                Task { await SyncCoordinator.syncAll(into: modelContext) }
+            }
+        }
         .onChange(of: authService.isSignedIn) { _, isSignedIn in
             if isSignedIn {
                 checkAccountOwnership()

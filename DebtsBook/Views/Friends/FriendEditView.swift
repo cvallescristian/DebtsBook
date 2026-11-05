@@ -102,7 +102,7 @@ struct FriendEditView: View {
         friend.name = name
         friend.photoData = photoData
         friend.iconName = iconName
-        Task { await FriendSyncService.shared.push(friend: friend) }
+        DataStore.commit(modelContext)
         dismiss()
     }
 
@@ -116,7 +116,7 @@ struct FriendEditView: View {
         guard await FriendSyncService.shared.delete(friend: friend) else {
             return false
         }
-        modelContext.delete(friend)
+        DataStore.delete(friend, from: modelContext)
         deleteSucceeded = true
         return true
     }

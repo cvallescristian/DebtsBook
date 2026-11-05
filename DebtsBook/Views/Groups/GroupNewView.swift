@@ -42,7 +42,7 @@ struct GroupNewView: View {
 
     private func save() {
         let group = ExpenseGroup(name: name)
-        modelContext.insert(group)
+        DataStore.insert(group, into: modelContext)
         dismiss()
     }
 }
