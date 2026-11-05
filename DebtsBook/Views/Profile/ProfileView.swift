@@ -19,6 +19,7 @@ struct ProfileView: View {
     @State private var importResultMessage: String?
     @State private var showingImportResult = false
     @State private var showingSignIn = false
+    @State private var showingDeleteAccount = false
 
     var body: some View {
         NavigationStack {
@@ -113,10 +114,19 @@ struct ProfileView: View {
                     Button("Reset App", role: .destructive) {
                         showingResetAppConfirmation = true
                     }
+                    if authService.isSignedIn {
+                        Button("Delete Account", role: .destructive) {
+                            showingDeleteAccount = true
+                        }
+                    }
                 } header: {
                     Text("Danger Zone")
                 } footer: {
-                    Text("Deleting all expenses also deletes their activity. Resetting the app permanently deletes all friends, groups, budgets, expenses, and activity.")
+                    if authService.isSignedIn {
+                        Text("Deleting all expenses also deletes their activity. Resetting the app permanently deletes all friends, groups, budgets, expenses, and activity. Deleting your account also removes it and all its data from our servers.")
+                    } else {
+                        Text("Deleting all expenses also deletes their activity. Resetting the app permanently deletes all friends, groups, budgets, expenses, and activity.")
+                    }
                 }
             }
             .confirmationModal(
@@ -165,6 +175,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showingSignIn) {
                 SignInRequiredView()
+            }
+            .sheet(isPresented: $showingDeleteAccount) {
+                DeleteAccountView()
             }
             .navigationTitle("Profile")
         }

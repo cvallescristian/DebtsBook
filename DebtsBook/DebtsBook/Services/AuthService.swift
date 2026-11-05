@@ -72,6 +72,29 @@ final class AuthService: NSObject {
         }
     }
 
+    /// Whether this account has a Sign in with Apple identity, whose tokens must be revoked
+    /// when the account is deleted.
+    var usesSignInWithApple: Bool {
+        session?.user.identities?.contains { $0.provider == "apple" } ?? false
+    }
+
+    private struct DeleteAccountRequest: Encodable {
+        let apple_authorization_code: String?
+    }
+
+    /// Permanently deletes the account and all its server data (delete-account Edge Function),
+    /// then ends the session locally. The caller erases local data.
+    func deleteAccount(appleAuthorizationCode: String?) async throws {
+        try await client.functions.invoke(
+            "delete-account",
+            options: FunctionInvokeOptions(method: .post, body: DeleteAccountRequest(apple_authorization_code: appleAuthorizationCode))
+        )
+        // The user no longer exists server-side, so this only clears the stored session.
+        try? await client.auth.signOut()
+        session = nil
+        confirmedOwnerID = nil
+    }
+
     func signOut() async {
         await NotificationService.shared.removeDeviceToken()
         try? await client.auth.signOut()
