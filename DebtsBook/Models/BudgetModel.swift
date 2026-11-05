@@ -22,6 +22,9 @@ enum BudgetPeriod: String, Codable, CaseIterable {
 class Budget {
     var amount: Decimal = 0
     var period: BudgetPeriod = BudgetPeriod.week
+    var remoteID: UUID?
+    /// Changed locally since the last push (set by SyncChangeTracker).
+    var isDirty: Bool = false
     @Relationship(deleteRule: .nullify)
     var group: ExpenseGroup?
 

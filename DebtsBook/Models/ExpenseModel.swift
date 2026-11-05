@@ -10,6 +10,8 @@ class Expense {
     var createdAt: Date = Date()
     var date: Date = Date()
     var remoteID: UUID?
+    /// Changed locally since the last push (set by SyncChangeTracker).
+    var isDirty: Bool = false
 
     @Relationship(deleteRule: .nullify)
     var friend: Friend?

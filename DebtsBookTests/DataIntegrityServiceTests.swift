@@ -89,12 +89,14 @@ struct DataIntegrityServiceTests {
         friend.linkedUserID = UUID()
         context.insert(friend)
 
+        let staleExpenseID = UUID()
         let expense = Expense(title: "Dinner", amount: 20, friend: friend)
-        expense.remoteID = UUID()
+        expense.remoteID = staleExpenseID
         context.insert(expense)
 
+        let staleActivityID = UUID()
         let activity = Activity(type: .created, expenseTitle: "Dinner", amount: 20, paidByMe: true, friend: friend)
-        activity.remoteID = UUID()
+        activity.remoteID = staleActivityID
         context.insert(activity)
 
         try context.save()
@@ -102,8 +104,9 @@ struct DataIntegrityServiceTests {
         DataIntegrityService.repairDanglingRelationships(context: context)
 
         #expect(friend.linkedUserID == nil)
-        #expect(expense.remoteID == nil)
-        #expect(activity.remoteID == nil)
+        // SyncChangeTracker may give them fresh owner-table IDs; the stale shared ones must go.
+        #expect(expense.remoteID != staleExpenseID)
+        #expect(activity.remoteID != staleActivityID)
     }
 
     @Test func leavesAGenuinelyConnectedFriendUntouched() throws {

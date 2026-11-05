@@ -15,6 +15,7 @@
 		A1B2C3D4E5F60718293A4B5C /* NotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */; };
 		B2C3D4E5F60718293A4B5C6D /* PendingExpenseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */; };
 		B2C3D4E5F60718293A4B5C7D /* AccountOwnershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C7E /* AccountOwnershipTests.swift */; };
+		B2C3D4E5F60718293A4B5C8D /* SyncChangeTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C8E /* SyncChangeTrackerTests.swift */; };
 		B3C4D5E6F708192A3B4C5D6E /* BackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */; };
 		D4DE3CF6C72FE152E0B861AC /* BudgetModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D445085544E9F18E33936348 /* BudgetModelTests.swift */; };
 /* End PBXBuildFile section */
@@ -43,6 +44,7 @@
 		A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationServiceTests.swift; sourceTree = "<group>"; };
 		B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingExpenseTests.swift; sourceTree = "<group>"; };
 		B2C3D4E5F60718293A4B5C7E /* AccountOwnershipTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AccountOwnershipTests.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C8E /* SyncChangeTrackerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SyncChangeTrackerTests.swift; sourceTree = "<group>"; };
 		B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BackupServiceTests.swift; sourceTree = "<group>"; };
 		C1D2E3F4A5B6C7D8E9F0A102 /* DebtsBookUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DebtsBookUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivityModelTests.swift; sourceTree = "<group>"; };
@@ -113,6 +115,7 @@
 				B3C4D5E6F708192A3B4C5D6F /* BackupServiceTests.swift */,
 				B2C3D4E5F60718293A4B5C6E /* PendingExpenseTests.swift */,
 				B2C3D4E5F60718293A4B5C7E /* AccountOwnershipTests.swift */,
+				B2C3D4E5F60718293A4B5C8E /* SyncChangeTrackerTests.swift */,
 				A1B2C3D4E5F60718293A4B5D /* NotificationServiceTests.swift */,
 				C326B54EECB0C7A5512E1C1D /* ActivityModelTests.swift */,
 			);
@@ -309,6 +312,7 @@
 				B3C4D5E6F708192A3B4C5D6E /* BackupServiceTests.swift in Sources */,
 				B2C3D4E5F60718293A4B5C6D /* PendingExpenseTests.swift in Sources */,
 				B2C3D4E5F60718293A4B5C7D /* AccountOwnershipTests.swift in Sources */,
+				B2C3D4E5F60718293A4B5C8D /* SyncChangeTrackerTests.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* NotificationServiceTests.swift in Sources */,
 				7CE60D563E8569B29A5FC104 /* ActivityModelTests.swift in Sources */,
 			);
