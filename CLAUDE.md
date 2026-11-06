@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-DebtsBook is an iOS app (SwiftUI + SwiftData) for tracking shared expenses with friends and personal spending with group budgets. Core expense/friend/budget data lives entirely on-device in SwiftData — no account is required to use the app. An optional Supabase backend layered on top lets a user sign in and link up with one other person per friend to keep a shared expense history in sync between both of their devices.
+DebtsBook is an iOS app (SwiftUI + SwiftData) for tracking shared expenses with friends and personal spending with group budgets. All data lives on-device in SwiftData first — no account is required to use the app. An optional Supabase backend layered on top lets a user sign in to back up and sync all of their data (friends, groups, budgets, expenses, activity) to their account, and link up with one other person per friend to keep a shared expense history in sync between both of their devices.
 
 ## Commands
 
@@ -47,7 +47,7 @@ There are two Supabase projects: **staging** (Debug builds: Xcode, simulators) a
 
 ### Local-first data model (SwiftData)
 
-All domain models live in `DebtsBook/Models/` as `@Model` classes: `Friend`, `Expense`, `ExpenseGroup`, `Budget`, `Activity`. The single `ModelContainer` is created once in `DebtsBookApp.swift` and injected via `.modelContainer(container)`; views read/write it through `@Environment(\.modelContext)` and `@Query`.
+All domain models live in `DebtsBook/Models/` as `@Model` classes: `Friend`, `Expense`, `ExpenseGroup`, `Budget`, `Activity`, `PendingExpense`, plus `SyncTombstone` (a local delete waiting to be pushed). The single `ModelContainer` is created once in `DebtsBookApp.swift` (`AppModelContainer`) and injected via `.modelContainer(container)`; views read/write it through `@Environment(\.modelContext)` and `@Query`.
 
 Key relationships and rules:
 - `Expense.friend` / `Expense.group` and `Budget.group` are `@Relationship(deleteRule: .nullify)` — deleting a friend or group must not leave a dangling reference. `DataIntegrityService.repairDanglingRelationships` runs once at launch (only on the real on-disk store, not in tests) to fix up any data saved before this rule existed; don't remove it without understanding that history.
@@ -57,14 +57,20 @@ Key relationships and rules:
 
 ### Test host and in-memory container
 
-`TestSupport.swift` detects the XCTest bundle host (`XCTestConfigurationFilePath` env var) and both the app and tests share one in-memory `ModelContainer` (`TestModelContainer.shared`) — SwiftData traps if two containers for the same `@Model` types are alive in one process. When adding a new `@Model` type, register it in **both** `DebtsBookApp.swift`'s real container and `TestModelContainer.shared`, or tests will crash.
+`TestSupport.swift` detects the XCTest bundle host (`XCTestConfigurationFilePath` env var) and both the app and tests share one in-memory `ModelContainer` (`TestModelContainer.shared`) — SwiftData traps if two containers for the same `@Model` types are alive in one process. All containers (app, tests, UI tests, previews) build their schema from `AppModelContainer.modelTypes`; when adding a new `@Model` type, add it there.
 
 ### Optional Supabase sync layer
 
 Everything under `DebtsBook/DebtsBook/Services/` (note: nested one level deeper than `Models`/`Views`) is the sync layer, built on `supabase-swift`:
 
 - `SupabaseManager` — holds the single `SupabaseClient`, built from `Secrets.swift`.
-- `AuthService` — magic link (OTP), Sign in with Apple, and session restore/URL-callback handling (`debtsbook://login-callback`).
+- `AuthService` — magic link (OTP), Sign in with Apple, session restore/URL-callback handling (`debtsbook://login-callback`), and account deletion (calls the `delete-account` Edge Function).
+- `AccountOwnership` — the local store belongs to one account at a time (`dataOwnerUserID`). Nothing syncs until the signed-in account is confirmed as the owner; a different account with local data gets `AccountSwitchView` first, since syncing another account's store would delete its shared expenses locally.
+- `SyncCoordinator` — runs the whole sync (`syncAll`): save, owner push, pull friends, pull each linked friend's expenses/activities, owner pull. Never overlaps (a request mid-sync queues one more run). `scheduleSync` debounces edits (2s); also runs on sign-in, network reconnect, and background refresh.
+- `SyncChangeTracker` — observes saves and marks changed `SyncedModel` rows `isDirty`, and records deletes of synced rows as `SyncTombstone`s. `Expense.syncTable` moves between `personal_expenses` (no linked friend) and the connection-shared `expenses`.
+- `OwnerSyncService` — syncs everything not shared through a connection (friends, groups, budgets, personal/unlinked expenses and activity) to the owner-only tables from migrations 0010/0011: pushes dirty rows and tombstones (`deleted_at`), pulls with a per-table since-cursor. Talks to the server through the `SyncBackend` protocol (faked in tests).
+- `SyncStatus` — observable state for the Profile `SyncStatusRow` and `SyncIcon`: syncing/failed, last synced, pending change count, online (via `NWPathMonitor`).
+- `NotificationService` — push permission and this device's row in `device_tokens`; pushes are sent server-side by the `notify-activity` Edge Function.
 - `ConnectService` — creates a shared `connections` row plus a redeemable invite code per friend; `redeemInvite` calls a Postgres RPC. A connection has at most two members (`user_a`/`user_b`).
 - `FriendSyncService` — pushes/pulls `Friend` rows keyed by `remoteID`, and resolves `linkedUserID` once an invite is redeemed.
 - `ExpenseSyncService` — pushes/pulls `Expense` rows for a linked friend's connection; server is authoritative for anything previously synced (a synced expense missing from a fresh pull gets deleted locally).
@@ -78,9 +84,12 @@ The sync flow has a specific ordering that matters when touching this code:
 3. `push(expense:)` / sync methods across these services guard on `friend.linkedUserID != nil`, not just `connectionID`, for this reason — don't relax that guard without preserving the ordering.
 4. Disconnecting a friend clears `connectionID`/`linkedUserID` and nulls out `remoteID` on that friend's expenses/activities (their Supabase rows cascade-delete via `connections`), while keeping the local copy each side has already synced.
 5. `ExpenseSyncService` tracks in-flight `remoteID`s (`pendingPushIDs`) so a pull racing an unfinished push can't delete the local row out from under it.
+6. Owner tables soft-delete (`deleted_at` tombstones), but the connection-shared `expenses`/`activities` still use hard deletes plus reconcile on pull, until builds that don't understand `deleted_at` are gone.
+
+Edge Functions live in `supabase/functions/`: `notify-activity` (APNs pushes, triggered by the database webhook) and `delete-account` (deletes the calling user, letting foreign keys cascade all of their data, and revokes Sign in with Apple tokens first, best effort). Their secrets are set with `supabase secrets set`, never committed.
 
 RLS policies backing all of this live in `supabase/migrations/`, applied in numeric order — the SQL comments there call out ordering hazards (e.g. `0002_shared_expenses.sql` is destructive and only safe to run once on a fresh project). When changing sync behavior, check whether the corresponding policy/columns need a new migration file rather than editing an already-applied one.
 
 ### View structure
 
-Views are grouped by feature under `DebtsBook/Views/` (`Friends/`, `Groups/`, `Expenses/`, `Reports/`, `Activity/`, `Profile/`), each typically with `...View` (list), `...DetailView`, `...NewView`, `...EditView`. `RootView` gates the UI on session restore → optional Face ID lock (`requireFaceID` in `@AppStorage`) → `MainTabView`, and triggers a `FriendSyncService.pullFriends` whenever `AuthService.isSignedIn` flips true. Auth-specific screens (`AuthView`, invite flows) live directly under `DebtsBook/DebtsBook/Views/` rather than the feature-grouped `DebtsBook/Views/` tree — check both locations when looking for a view.
+Views are grouped by feature under `DebtsBook/Views/` (`Friends/`, `Groups/`, `Expenses/`, `Reports/`, `Activity/`, `Profile/`), each typically with `...View` (list), `...DetailView`, `...NewView`, `...EditView`. `RootView` gates the UI on session restore → optional Face ID lock (`requireFaceID` in `@AppStorage`) → `MainTabView`, and, once sign-in flips true and `AccountOwnership` is confirmed, triggers `SyncCoordinator.syncAll`. Auth/account screens (`AuthView`, `AccountSwitchView`, `DeleteAccountView`, `SignInRequiredView`, invite flows) live directly under `DebtsBook/DebtsBook/Views/` rather than the feature-grouped `DebtsBook/Views/` tree — check both locations when looking for a view.
