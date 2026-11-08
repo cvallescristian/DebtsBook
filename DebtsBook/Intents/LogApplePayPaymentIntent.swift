@@ -21,6 +21,13 @@ struct LogApplePayPaymentIntent: AppIntent {
     @Parameter(title: "Card")
     var card: String?
 
+    // Without a summary, iOS 26 Shortcuts shows the action as a closed card with no fields to link.
+    static var parameterSummary: some ParameterSummary {
+        Summary("Log \(\.$amount) at \(\.$merchant)") {
+            \.$card
+        }
+    }
+
     @MainActor
     func perform() async throws -> some IntentResult {
         guard let value = PendingExpense.parseAmount(amount), value > 0 else {
