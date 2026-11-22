@@ -146,6 +146,7 @@ struct FriendView: View {
                     GroupDetailView(group: group)
                 } label: {
                     HStack {
+                        GroupIcon(group: group)
                         Text(group.name)
                         SyncIcon(item: group)
                             .font(.caption)

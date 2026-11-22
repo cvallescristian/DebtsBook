@@ -103,6 +103,8 @@ struct GroupRow: Codable, OwnerRow {
     let id: UUID
     var owner_id: UUID?
     let name: String
+    var icon_name: String?
+    var color_name: String?
     var updated_at: Date?
     var deleted_at: Date?
 
@@ -111,6 +113,8 @@ struct GroupRow: Codable, OwnerRow {
         try c.encode(id, forKey: .id)
         try c.encodeNullable(owner_id, forKey: .owner_id)
         try c.encode(name, forKey: .name)
+        try c.encodeNullable(icon_name, forKey: .icon_name)
+        try c.encodeNullable(color_name, forKey: .color_name)
     }
 }
 
@@ -245,7 +249,7 @@ struct OwnerSyncService {
             SyncFriendRow(id: friend.remoteID!, owner_id: ownerID, name: friend.name, icon_name: friend.iconName)
         }
         try await pushRows(ExpenseGroup.self, table: "expense_groups") { group in
-            GroupRow(id: group.remoteID!, owner_id: ownerID, name: group.name)
+            GroupRow(id: group.remoteID!, owner_id: ownerID, name: group.name, icon_name: group.iconName, color_name: group.colorName)
         }
         try await pushRows(Budget.self, table: "budgets") { (budget: Budget) -> BudgetRow? in
             guard let groupID = Self.reference(budget.group) else { return nil }
@@ -360,6 +364,8 @@ struct OwnerSyncService {
         try await pullRows(GroupRow.self, ExpenseGroup.self, table: "expense_groups") { row, local in
             let group = local ?? ExpenseGroup(name: row.name)
             group.name = row.name
+            group.iconName = row.icon_name
+            group.colorName = row.color_name
             return group
         }
 

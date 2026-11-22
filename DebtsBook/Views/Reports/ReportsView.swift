@@ -9,6 +9,7 @@ struct ReportsView: View {
     @State private var selectedBarLabel: String?
     @State private var showingBudgetEdit: Bool = false
     @State private var editingExpense: Expense?
+    @State private var groupFilter: String?
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query private var budgets: [Budget]
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
@@ -70,6 +71,32 @@ struct ReportsView: View {
         }
     }
 
+    private static let previewCount = 5
+
+    private var filteredExpenses: [Expense] {
+        guard let groupFilter else { return expensesInRange }
+        return expensesInRange.filter { ($0.group?.name ?? PeriodSpending.noGroupName) == groupFilter }
+    }
+
+    /// Groups with spending or a budget this period: budgeted ones first, then most spent first.
+    /// Unbudgeted groups with no spending are left out.
+    private var visibleGroups: [ExpenseGroup] {
+        groups
+            .filter { groupSpent($0) > 0 || groupBudget($0) != nil }
+            .sorted { lhs, rhs in
+                let lhsBudgeted = groupBudget(lhs) != nil
+                let rhsBudgeted = groupBudget(rhs) != nil
+                if lhsBudgeted != rhsBudgeted {
+                    return lhsBudgeted
+                }
+                return groupSpent(lhs) > groupSpent(rhs)
+            }
+    }
+
+    private var ungroupedSpent: Decimal {
+        expensesInRange.filter { $0.group == nil }.reduce(0) { $0 + $1.amount }
+    }
+
     private func groupSpent(_ group: ExpenseGroup) -> Decimal {
         let interval = selectedInterval
         return expenses
@@ -81,19 +108,6 @@ struct ReportsView: View {
         budgets.first { $0.period == selectedRange && $0.group?.persistentModelID == group.persistentModelID }
     }
 
-    private func groupProgress(_ group: ExpenseGroup) -> Double {
-        guard let budget = groupBudget(group), budget.amount > 0 else { return 0 }
-        let fraction = groupSpent(group) / budget.amount
-        return min(Double(truncating: fraction as NSDecimalNumber), 1.0)
-    }
-
-    private func groupProgressColor(_ group: ExpenseGroup) -> Color {
-        switch groupProgress(group) {
-        case ..<0.8: return .green
-        case ..<1.0: return .orange
-        default: return .red
-        }
-    }
 
     var body: some View {
         NavigationStack {
@@ -109,19 +123,18 @@ struct ReportsView: View {
                 .listRowSeparator(.hidden)
                 .onChange(of: selectedRange) {
                     periodOffset = 0
+                    groupFilter = nil
+                }
+                .onChange(of: periodOffset) {
+                    groupFilter = nil
                 }
 
                 periodNavigator
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
 
-                Text("Reports only track personal expenses (\"Just Me\") — expenses shared with friends aren't included.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-
-                budgetCard
+                summaryCard
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
@@ -135,28 +148,33 @@ struct ReportsView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 } else {
-                    historyChart
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                }
-
-                if !expensesInRange.isEmpty {
-                    Section("Personal Expenses") {
-                        ForEach(expensesInRange) { expense in
-                            Button {
-                                editingExpense = expense
-                            } label: {
-                                ExpenseRow(expense: expense)
+                    if !visibleGroups.isEmpty || ungroupedSpent > 0 {
+                        Section("By Group") {
+                            ForEach(visibleGroups) { group in
+                                groupRow(group: group, name: group.name, spent: groupSpent(group), budget: groupBudget(group))
                             }
-                            .tint(.primary)
+                            if ungroupedSpent > 0 {
+                                groupRow(group: nil, name: PeriodSpending.noGroupName, spent: ungroupedSpent, budget: nil)
+                            }
                         }
                     }
+
+                    expensesSection
                 }
             }
             .navigationTitle("Reports")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        showingBudgetEdit = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .accessibilityLabel("Edit Budget")
+                }
+            }
             .sheet(isPresented: $showingBudgetEdit) {
-                BudgetLimitsEditView(period: selectedRange)
+                BudgetLimitsEditView()
             }
             .sheet(item: $editingExpense) { expense in
                 ExpenseEditView(expense: expense)
@@ -164,27 +182,15 @@ struct ReportsView: View {
         }
     }
 
-    private var budgetCard: some View {
+    private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(isCurrentPeriod ? "Total Spent This \(selectedRange.rawValue)" : "Total Spent")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text(total, format: .currency(code: "NZD"))
-                        .font(.title.bold())
-                }
-                Spacer()
-                Button {
-                    showingBudgetEdit = true
-                } label: {
-                    Image(systemName: budgetForSelectedRange == nil ? "target" : "pencil")
-                        .font(.caption.weight(.semibold))
-                }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.circle)
-                .controlSize(.regular)
-            }
+            Text(isCurrentPeriod ? "Total Spent This \(selectedRange.rawValue)" : "Total Spent")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Text(total, format: .currency(code: "NZD"))
+                .font(.largeTitle.bold())
+                .contentTransition(.numericText())
 
             if let budgetForSelectedRange, let remaining {
                 VStack(alignment: .leading, spacing: 6) {
@@ -206,21 +212,64 @@ struct ReportsView: View {
                 Button {
                     showingBudgetEdit = true
                 } label: {
-                    Text("Set a \(selectedRange.rawValue)ly Budget")
+                    Label("Set \(selectedRange.rawValue)ly Budget", systemImage: "target")
+                        .frame(maxWidth: .infinity)
                 }
-                .font(.caption)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
 
-            if !groups.isEmpty {
-                Divider()
-
-                ForEach(groups) { group in
-                    groupBudgetLine(group)
-                }
+            if !history.allSatisfy({ $0.total == 0 }) {
+                historyChart
+                    .padding(.top, 4)
             }
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .animation(.default, value: periodOffset)
+    }
+
+    private var expensesSection: some View {
+        Section {
+            if filteredExpenses.isEmpty {
+                Text("No expenses this \(selectedRange.rawValue.lowercased()).")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(filteredExpenses.prefix(Self.previewCount)) { expense in
+                    Button {
+                        editingExpense = expense
+                    } label: {
+                        ExpenseRow(expense: expense)
+                    }
+                    .tint(.primary)
+                }
+                if filteredExpenses.count > Self.previewCount {
+                    NavigationLink {
+                        ReportsExpenseListView(
+                            title: groupFilter ?? selectedRange.label(for: selectedInterval),
+                            expenses: filteredExpenses
+                        )
+                    } label: {
+                        Text("See All (\(filteredExpenses.count))")
+                            .foregroundStyle(.tint)
+                    }
+                }
+            }
+        } header: {
+            HStack {
+                Text(groupFilter.map { "\($0) Expenses" } ?? "Expenses")
+                Spacer()
+                if groupFilter != nil {
+                    Button("Show All") {
+                        groupFilter = nil
+                    }
+                    .font(.caption)
+                    .textCase(nil)
+                }
+            }
+        } footer: {
+            Text("Reports only track personal expenses (\"Just Me\"). Expenses shared with friends aren't included.")
+        }
     }
 
     private var relativePeriodTitle: String {
@@ -234,43 +283,27 @@ struct ReportsView: View {
 
     private var periodNavigator: some View {
         VStack(spacing: 10) {
-            HStack {
-                Button {
+            HStack(spacing: 0) {
+                periodArrow(systemImage: "chevron.left", label: "Previous \(selectedRange.rawValue)") {
                     periodOffset -= 1
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
                 }
-                .accessibilityLabel("Previous \(selectedRange.rawValue)")
-
-                Spacer()
 
                 VStack(spacing: 2) {
                     Text(relativePeriodTitle)
                         .font(.headline)
                     Text(selectedRange.label(for: selectedInterval))
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity)
                 .contentTransition(.numericText())
 
-                Spacer()
-
-                Button {
+                periodArrow(systemImage: "chevron.right", label: "Next \(selectedRange.rawValue)") {
                     periodOffset += 1
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
                 }
                 .disabled(isCurrentPeriod)
-                .accessibilityLabel("Next \(selectedRange.rawValue)")
             }
-            .buttonStyle(.borderless)
-            .tint(.primary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            .padding(4)
             .background(.thinMaterial, in: Capsule())
 
             if !isCurrentPeriod {
@@ -278,14 +311,23 @@ struct ReportsView: View {
                     periodOffset = 0
                 } label: {
                     Label("Back to This \(selectedRange.rawValue)", systemImage: "arrow.uturn.forward")
-                        .font(.caption.weight(.medium))
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
-                .controlSize(.small)
             }
         }
         .animation(.default, value: periodOffset)
+    }
+
+    private func periodArrow(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel(label)
     }
 
     /// Group names with spending in the visible periods, alphabetical, with "No Group" last.
@@ -299,13 +341,11 @@ struct ReportsView: View {
     }
 
     private func chartSeriesColors(_ history: [PeriodSpending]) -> [Color] {
-        let palette: [Color] = [.blue, .orange, .green, .purple, .pink, .teal, .yellow, .indigo, .red, .mint]
-        return chartSeriesNames(history).enumerated().map { index, name in
-            if name == PeriodSpending.noGroupName {
-                return .gray
-            }
-            return palette[index % palette.count]
-        }
+        chartSeriesNames(history).map(seriesColor)
+    }
+
+    private func seriesColor(_ name: String) -> Color {
+        groups.first { $0.name == name }?.displayColor ?? .gray
     }
 
     @ViewBuilder
@@ -337,10 +377,6 @@ struct ReportsView: View {
         let budgetAmount = budgetForSelectedRange.map { Double(truncating: $0.amount as NSDecimalNumber) }
 
         return VStack(alignment: .leading, spacing: 8) {
-            Text("History")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
             Chart {
                 if let selected = history.first(where: { $0.offset == periodOffset }) {
                     RectangleMark(x: .value("Period", barLabel(selected)))
@@ -378,43 +414,60 @@ struct ReportsView: View {
                 }
             }
             .chartForegroundStyleScale(domain: chartSeriesNames(history), range: chartSeriesColors(history))
-            .chartLegend(position: .bottom, alignment: .leading)
+            .chartLegend(.hidden)
             .chartXSelection(value: $selectedBarLabel)
             .onChange(of: selectedBarLabel) {
                 guard let selectedBarLabel,
                       let tapped = history.first(where: { barLabel($0) == selectedBarLabel }) else { return }
                 periodOffset = tapped.offset
             }
-            .frame(height: 200)
+            .frame(height: 180)
         }
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     @ViewBuilder
-    private func groupBudgetLine(_ group: ExpenseGroup) -> some View {
-        let spent = groupSpent(group)
-        let budget = groupBudget(group)
+    private func groupRow(group: ExpenseGroup?, name: String, spent: Decimal, budget: Budget?) -> some View {
+        let isFiltered = groupFilter == name
 
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(group.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                Spacer()
-                Text(spent, format: .currency(code: "NZD"))
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+            Button {
+                if isFiltered {
+                    groupFilter = nil
+                } else {
+                    groupFilter = name
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    if let group {
+                        GroupIcon(group: group)
+                    } else {
+                        GroupIcon(name: name, iconName: "tray.fill", color: .gray)
+                    }
+                    Text(name)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text(spent, format: .currency(code: "NZD"))
+                        .fontWeight(.semibold)
+                    if isFiltered {
+                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                            .foregroundStyle(.tint)
+                    }
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.borderless)
+            .tint(.primary)
 
             if let budget {
                 let remaining = budget.amount - spent
-                ProgressView(value: groupProgress(group))
-                    .tint(groupProgressColor(group))
+                let fraction = budget.amount > 0 ? Double(truncating: (spent / budget.amount) as NSDecimalNumber) : 0
+                let color = budgetColor(fraction)
+                ProgressView(value: min(fraction, 1))
+                    .tint(color)
 
                 HStack {
                     Text(remaining >= 0 ? "\(remaining, format: .currency(code: "NZD")) left" : "\(abs(remaining), format: .currency(code: "NZD")) over budget")
-                        .foregroundColor(groupProgressColor(group))
+                        .foregroundColor(color)
                         .fontWeight(.medium)
                     Spacer()
                     Text("of \(budget.amount, format: .currency(code: "NZD"))")
@@ -422,11 +475,49 @@ struct ReportsView: View {
                     SyncIcon(item: budget)
                 }
                 .font(.caption)
-            } else {
-                Text("No \(selectedRange.rawValue.lowercased())ly limit")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+            } else if group != nil {
+                HStack {
+                    Text("No \(selectedRange.rawValue.lowercased())ly limit")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Set Limit") {
+                        showingBudgetEdit = true
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                }
             }
+        }
+    }
+
+    private func budgetColor(_ fraction: Double) -> Color {
+        switch fraction {
+        case ..<0.8: return .green
+        case ..<1.0: return .orange
+        default: return .red
+        }
+    }
+}
+
+private struct ReportsExpenseListView: View {
+    let title: String
+    let expenses: [Expense]
+    @State private var editingExpense: Expense?
+
+    var body: some View {
+        List(expenses) { expense in
+            Button {
+                editingExpense = expense
+            } label: {
+                ExpenseRow(expense: expense)
+            }
+            .tint(.primary)
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingExpense) { expense in
+            ExpenseEditView(expense: expense)
         }
     }
 }

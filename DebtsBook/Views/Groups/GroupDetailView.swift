@@ -49,6 +49,20 @@ struct GroupDetailView: View {
 
     var body: some View {
         List {
+            Button {
+                showingEdit = true
+            } label: {
+                HStack {
+                    Spacer()
+                    GroupIcon(group: group, size: 72)
+                    Spacer()
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Edit Icon and Colour")
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
             Section("Budgets") {
                 ForEach(BudgetPeriod.allCases, id: \.self) { period in
                     budgetCard(for: period)
