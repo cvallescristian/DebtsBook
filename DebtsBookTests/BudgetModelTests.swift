@@ -62,4 +62,42 @@ struct BudgetModelTests {
         #expect(warnings.count == 1)
         #expect(warnings.first?.contains("Food budget") == true)
     }
+
+    @Test func previousPeriodIntervalIsImmediatelyBeforeCurrent() {
+        let current = BudgetPeriod.month.dateInterval()
+        let previous = BudgetPeriod.month.dateInterval(offset: -1)
+        #expect(previous.end == current.start)
+    }
+
+    @Test func spendingHistoryTotalsEachPeriodOldestFirst() {
+        let now = Date()
+        let lastWeek = BudgetPeriod.week.dateInterval(offset: -1, from: now).start.addingTimeInterval(3600)
+        let thisWeek = Expense(title: "Coffee", amount: 5, date: now)
+        let earlier = Expense(title: "Books", amount: 40, date: lastWeek)
+        let shared = Expense(title: "Dinner", amount: 100, friend: Friend(name: "Ana"), paidByMe: true, date: now)
+
+        let history = personalSpendingHistory(expenses: [thisWeek, earlier, shared], period: .week, count: 3, now: now)
+
+        #expect(history.map(\.offset) == [-2, -1, 0])
+        #expect(history.map(\.total) == [0, 40, 5])
+    }
+
+    @Test func spendingHistoryCanEndAtAnEarlierPeriod() {
+        let history = personalSpendingHistory(expenses: [], period: .month, count: 6, endOffset: -10)
+        #expect(history.first?.offset == -15)
+        #expect(history.last?.offset == -10)
+    }
+
+    @Test func spendingHistorySplitsTotalsByGroup() {
+        let now = Date()
+        let food = ExpenseGroup(name: "Food")
+        let lunch = Expense(title: "Lunch", amount: 20, group: food, date: now)
+        let snack = Expense(title: "Snack", amount: 5, group: food, date: now)
+        let misc = Expense(title: "Misc", amount: 10, date: now)
+
+        let history = personalSpendingHistory(expenses: [lunch, snack, misc], period: .week, count: 1, now: now)
+
+        #expect(history.first?.byGroup == ["Food": 25, PeriodSpending.noGroupName: 10])
+        #expect(history.first?.total == 35)
+    }
 }

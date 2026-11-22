@@ -58,7 +58,11 @@ struct GroupDetailView: View {
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
 
-            if !groupExpenses.isEmpty {
+            if groupExpenses.isEmpty {
+                ContentUnavailableView("No Expenses", systemImage: "tray", description: Text("Add personal expenses to this group."))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else {
                 Section("Expenses") {
                     ForEach(groupExpenses) { expense in
                         Button {
@@ -78,11 +82,6 @@ struct GroupDetailView: View {
                         .tint(.primary)
                     }
                 }
-            }
-        }
-        .overlay {
-            if groupExpenses.isEmpty && groupBudgets.isEmpty {
-                ContentUnavailableView("No Expenses", systemImage: "tray", description: Text("Add personal expenses to this group."))
             }
         }
         .navigationTitle(group.name)
