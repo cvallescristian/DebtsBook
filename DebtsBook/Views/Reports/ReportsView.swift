@@ -22,6 +22,12 @@ struct ReportsView: View {
         periodOffset == 0
     }
 
+    /// False once the selected period holds the oldest personal expense (or there are none).
+    private var canGoBack: Bool {
+        guard let oldest = expenses.last(where: { $0.isPersonal }) else { return false }
+        return oldest.date < selectedInterval.start
+    }
+
     private var expensesInRange: [Expense] {
         let interval = selectedInterval
         return expenses.filter { $0.isPersonal && interval.contains($0.date) }
@@ -287,6 +293,7 @@ struct ReportsView: View {
                 periodArrow(systemImage: "chevron.left", label: "Previous \(selectedRange.rawValue)") {
                     periodOffset -= 1
                 }
+                .disabled(!canGoBack)
 
                 VStack(spacing: 2) {
                     Text(relativePeriodTitle)
