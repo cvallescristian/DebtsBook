@@ -29,6 +29,11 @@ private final class FakeSyncBackend: SyncBackend {
         return clock.ISO8601Format()
     }
 
+    /// shared_expense_groups has no id column; one owner here, so its expense_id is the key.
+    private func rowID(_ object: [String: Any]) -> UUID {
+        UUID(uuidString: (object["id"] ?? object["expense_id"]) as! String)!
+    }
+
     func row(_ table: String, _ id: UUID) -> [String: Any]? {
         tables[table]?[id]
     }
@@ -38,12 +43,12 @@ private final class FakeSyncBackend: SyncBackend {
             throw URLError(.notConnectedToInternet)
         }
         let objects = try rows.map { try JSONSerialization.jsonObject(with: encoder.encode($0)) as! [String: Any] }
-        if objects.contains(where: { rejectedIDs.contains(UUID(uuidString: $0["id"] as! String)!) }) {
+        if objects.contains(where: { rejectedIDs.contains(rowID($0)) }) {
             throw Rejected()
         }
         for row in rows {
             var object = try JSONSerialization.jsonObject(with: encoder.encode(row)) as! [String: Any]
-            let id = UUID(uuidString: object["id"] as! String)!
+            let id = rowID(object)
             object = (tables[table]?[id] ?? [:]).merging(object) { _, new in new }
             object["updated_at"] = tick()
             tables[table, default: [:]][id] = object
@@ -72,7 +77,7 @@ private final class FakeSyncBackend: SyncBackend {
     func insertRemote(_ table: String, _ object: [String: Any]) {
         var object = object
         object["updated_at"] = tick()
-        tables[table, default: [:]][UUID(uuidString: object["id"] as! String)!] = object
+        tables[table, default: [:]][rowID(object)] = object
     }
 }
 
@@ -295,6 +300,115 @@ struct OwnerSyncServiceTests {
 
         #expect(group.name == "Local name")
         #expect(group.isDirty)
+    }
+
+    /// A shared expense (linked friend) whose expense row ExpenseSyncService already uploaded.
+    private func makeSharedExpense(in context: ModelContext, group: ExpenseGroup?) throws -> Expense {
+        let sam = Friend(name: "Sam")
+        sam.linkedUserID = UUID()
+        let dinner = Expense(title: "Dinner", amount: 80, friend: sam, group: group, date: date)
+        dinner.remoteID = UUID()
+        context.insert(sam)
+        context.insert(dinner)
+        try context.save()
+        return dinner
+    }
+
+    @Test func pushesTheGroupOfASharedExpenseAndClearsTheFlag() async throws {
+        let context = try makeContext()
+        let food = ExpenseGroup(name: "Food")
+        context.insert(food)
+        let dinner = try makeSharedExpense(in: context, group: food)
+        dinner.groupNeedsSync = true
+        try context.save()
+
+        try await makeService(context).push()
+
+        let row = try #require(backend.row("shared_expense_groups", dinner.remoteID!))
+        #expect(row["group_id"] as? String == food.remoteID?.uuidString)
+        #expect(row["owner_id"] as? String == ownerID.uuidString)
+        #expect(!dinner.groupNeedsSync)
+        #expect(backend.row("personal_expenses", dinner.remoteID!) == nil)
+    }
+
+    @Test func clearingASharedExpenseGroupSendsNull() async throws {
+        let context = try makeContext()
+        let dinner = try makeSharedExpense(in: context, group: nil)
+        dinner.groupNeedsSync = true
+        try context.save()
+
+        try await makeService(context).push()
+
+        let row = try #require(backend.row("shared_expense_groups", dinner.remoteID!))
+        #expect(row["group_id"] is NSNull)
+    }
+
+    @Test func aRejectedSharedExpenseGroupStaysFlagged() async throws {
+        let context = try makeContext()
+        let dinner = try makeSharedExpense(in: context, group: nil)
+        dinner.groupNeedsSync = true
+        try context.save()
+        backend.rejectedIDs = [try #require(dinner.remoteID)]
+
+        try await makeService(context).push()
+
+        #expect(dinner.groupNeedsSync)
+    }
+
+    @Test func pullSetsTheGroupOfASharedExpense() async throws {
+        let context = try makeContext()
+        let food = ExpenseGroup(name: "Food")
+        context.insert(food)
+        let dinner = try makeSharedExpense(in: context, group: nil)
+        let service = makeService(context)
+        try await service.sync()
+
+        backend.insertRemote("shared_expense_groups", [
+            "owner_id": ownerID.uuidString, "expense_id": try #require(dinner.remoteID).uuidString,
+            "group_id": try #require(food.remoteID).uuidString,
+        ])
+        try await service.pull()
+
+        #expect(dinner.group?.persistentModelID == food.persistentModelID)
+        #expect(dinner.groupDecided)
+        #expect(!dinner.groupNeedsSync)
+    }
+
+    @Test func pullOfASkippedSharedExpenseMarksItDecided() async throws {
+        let context = try makeContext()
+        let dinner = try makeSharedExpense(in: context, group: nil)
+        let service = makeService(context)
+        try await service.sync()
+
+        backend.insertRemote("shared_expense_groups", [
+            "owner_id": ownerID.uuidString, "expense_id": dinner.remoteID!.uuidString,
+        ])
+        try await service.pull()
+
+        #expect(dinner.group == nil)
+        #expect(dinner.groupDecided)
+    }
+
+    @Test func pullKeepsAnUnpushedSharedExpenseGroup() async throws {
+        let context = try makeContext()
+        let food = ExpenseGroup(name: "Food")
+        let fun = ExpenseGroup(name: "Fun")
+        context.insert(food)
+        context.insert(fun)
+        let dinner = try makeSharedExpense(in: context, group: nil)
+        let service = makeService(context)
+        try await service.sync()
+
+        backend.insertRemote("shared_expense_groups", [
+            "owner_id": ownerID.uuidString, "expense_id": try #require(dinner.remoteID).uuidString,
+            "group_id": try #require(food.remoteID).uuidString,
+        ])
+        dinner.group = fun
+        dinner.groupNeedsSync = true
+        try context.save()
+        try await service.pull()
+
+        #expect(dinner.group?.persistentModelID == fun.persistentModelID)
     }
 
     @Test func pullSkipsExpensesOfALinkedFriend() async throws {

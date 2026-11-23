@@ -4,6 +4,11 @@ import SwiftData
 struct MainTabView: View {
 
     @Query private var pendingExpenses: [PendingExpense]
+    @Query private var expenses: [Expense]
+
+    private var expensesBadge: Int {
+        pendingExpenses.count + expenses.filter(\.needsCategorizing).count
+    }
 
     var body: some View {
         TabView {
@@ -16,7 +21,7 @@ struct MainTabView: View {
             Tab("Expenses", systemImage: "dollarsign.circle") {
                 ExpensesView()
             }
-            .badge(pendingExpenses.count)
+            .badge(expensesBadge)
             Tab("Activity", systemImage: "clock.arrow.circlepath") {
                 ActivityView()
             }

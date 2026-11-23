@@ -16,6 +16,11 @@ struct ExpensesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query(sort: \PendingExpense.date, order: .reverse) private var pendingExpenses: [PendingExpense]
+    @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
+
+    private var toCategorize: [Expense] {
+        expenses.filter(\.needsCategorizing)
+    }
 
     private var filteredExpenses: [Expense] {
         switch selectedFilter {
@@ -72,6 +77,32 @@ struct ExpensesView: View {
                     }
                 }
 
+                if !toCategorize.isEmpty {
+                    Section {
+                        ForEach(toCategorize) { expense in
+                            Menu {
+                                ExpenseGroupChoices(expense: expense, groups: groups)
+                            } label: {
+                                ToCategorizeRow(expense: expense)
+                            }
+                            .tint(.primary)
+                            .accessibilityIdentifier("toCategorizeRow")
+                            .swipeActions(edge: .trailing) {
+                                Button {
+                                    assignGroup(nil, to: expense, in: modelContext)
+                                } label: {
+                                    Label("Skip", systemImage: "xmark")
+                                }
+                                .tint(.gray)
+                            }
+                        }
+                    } header: {
+                        Label("To categorize · \(toCategorize.count)", systemImage: "tray")
+                    } footer: {
+                        Text("Tap to pick a group so your share counts in Reports, or swipe to skip.")
+                    }
+                }
+
                 Section {
                     ForEach(filteredExpenses) { expense in
                         Button {
@@ -84,7 +115,7 @@ struct ExpensesView: View {
                     }
                 }
             } .overlay {
-                if filteredExpenses.isEmpty && pendingExpenses.isEmpty {
+                if filteredExpenses.isEmpty && pendingExpenses.isEmpty && toCategorize.isEmpty {
                     ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses will show up here."))
                 }
             }
@@ -115,6 +146,36 @@ struct ExpensesView: View {
 
     }
 
+}
+
+private struct ToCategorizeRow: View {
+    let expense: Expense
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "folder.badge.questionmark")
+                .font(.subheadline)
+                .foregroundStyle(.blue)
+                .frame(width: 36, height: 36)
+                .background(.blue.opacity(0.15), in: Circle())
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(expense.title)
+                    Spacer()
+                    Text(expense.myShare, format: .currency(code: "NZD"))
+                }
+                HStack {
+                    Text(expense.paidByLabel)
+                    Text(expense.date, format: .dateTime.day().month().year())
+                    Spacer()
+                    Text("Your share")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .contentShape(Rectangle())
+    }
 }
 
 private struct PendingExpenseRow: View {

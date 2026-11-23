@@ -63,6 +63,26 @@ struct ExpenseModelTests {
         #expect(expense.countsAsSpending)
     }
 
+    @Test func onlyUndecidedLinkedExpensesWithAShareNeedCategorizing() {
+        let sam = Friend(name: "Sam")
+        sam.linkedUserID = UUID()
+        let date = Expense.categorizeCutoff.addingTimeInterval(3600)
+        let dinner = Expense(title: "Dinner", amount: 80, friend: sam, paidByMe: false, date: date)
+        #expect(dinner.needsCategorizing)
+
+        dinner.groupDecided = true
+        #expect(!dinner.needsCategorizing)
+
+        let gift = Expense(title: "Gift", amount: 80, friend: sam, paidByMe: true, splitType: .fullAmount, date: date)
+        #expect(!gift.needsCategorizing)
+
+        let old = Expense(title: "Old", amount: 80, friend: sam, date: Expense.categorizeCutoff.addingTimeInterval(-3600))
+        #expect(!old.needsCategorizing)
+
+        let unlinked = Expense(title: "Taxi", amount: 20, friend: Friend(name: "Ana"), date: date)
+        #expect(!unlinked.needsCategorizing)
+    }
+
     @Test func netBalanceExcludesSettledExpenses() {
         let friend = Friend(name: "Ana")
         let unsettled = Expense(title: "Lunch", amount: 20, friend: friend, paidByMe: true)

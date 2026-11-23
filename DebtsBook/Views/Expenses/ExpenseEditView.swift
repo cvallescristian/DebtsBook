@@ -188,6 +188,7 @@ struct ExpenseEditView: View {
         let previousRemoteID = expense.remoteID
         let newFriend = isPersonal ? nil : selectedFriend
         let friendChanged = previousFriend?.persistentModelID != newFriend?.persistentModelID
+        let groupChanged = expense.group?.persistentModelID != selectedGroup?.persistentModelID
         expense.title = title
         expense.amount = amount
         expense.date = date
@@ -196,6 +197,10 @@ struct ExpenseEditView: View {
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
+        if newFriend?.linkedUserID != nil && (groupChanged || friendChanged) {
+            expense.groupDecided = true
+            expense.groupNeedsSync = true
+        }
         let updateActivity = Activity(type: .updated, expenseTitle: expense.title, friendName: newFriend?.name, amount: expense.loggedAmount, paidByMe: expense.paidByMe, expense: expense, friend: newFriend)
         DataStore.insert(updateActivity, into: modelContext)
         if friendChanged, previousFriend?.linkedUserID != nil, let previousRemoteID {

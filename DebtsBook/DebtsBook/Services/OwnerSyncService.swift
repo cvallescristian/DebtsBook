@@ -195,6 +195,21 @@ struct PersonalActivityRow: Codable, OwnerRow {
     }
 }
 
+/// Your group for a connection-shared expense (migration 0014), one row per owner and
+/// expense. The expense row itself stays with ExpenseSyncService.
+struct SharedExpenseGroupRow: Codable {
+    var owner_id: UUID?
+    let expense_id: UUID
+    let group_id: UUID?
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeNullable(owner_id, forKey: .owner_id)
+        try c.encode(expense_id, forKey: .expense_id)
+        try c.encodeNullable(group_id, forKey: .group_id)
+    }
+}
+
 // MARK: - Engine
 
 @MainActor
@@ -211,6 +226,7 @@ struct OwnerSyncService {
     private static let logger = Logger(subsystem: "Cristian.DebtsBook", category: "sync")
 
     static let pushOrder = ["friends", "expense_groups", "budgets", "personal_expenses", "personal_activities"]
+    static let sharedExpenseGroupsTable = "shared_expense_groups"
 
     func sync() async throws {
         try await push()
@@ -270,6 +286,34 @@ struct OwnerSyncService {
                 type: activity.type.rawValue, expense_title: activity.expenseTitle, amount: activity.amount,
                 paid_by_me: activity.paidByMe, date: activity.date
             )
+        }
+        try await pushSharedExpenseGroups()
+    }
+
+    /// Uploads your group for shared expenses flagged `groupNeedsSync`, after groups so the
+    /// group exists on the server. A row the server rejects (its expense not uploaded yet)
+    /// stays flagged for the next sync.
+    private func pushSharedExpenseGroups() async throws {
+        let flagged = try context.fetch(FetchDescriptor<Expense>(predicate: #Predicate { $0.groupNeedsSync }))
+        guard !flagged.isEmpty else { return }
+        var pushed: [Expense] = []
+        var rows: [SharedExpenseGroupRow] = []
+        var noLongerShared: [Expense] = []
+        for expense in flagged {
+            // Unlinked since: its personal_expenses row carries the group instead.
+            guard expense.syncTable == "expenses" else {
+                noLongerShared.append(expense)
+                continue
+            }
+            guard let expenseID = expense.remoteID, let groupID = Self.reference(expense.group) else { continue }
+            pushed.append(expense)
+            rows.append(SharedExpenseGroupRow(owner_id: ownerID, expense_id: expenseID, group_id: groupID))
+        }
+        let uploaded = try await upsertSkippingRejected(pushed, rows: rows, into: Self.sharedExpenseGroupsTable)
+        SyncChangeTracker.applyingSyncChanges(in: context) {
+            for expense in uploaded + noLongerShared {
+                expense.groupNeedsSync = false
+            }
         }
     }
 
@@ -411,6 +455,30 @@ struct OwnerSyncService {
             activity.date = row.date
             activity.friend = friend
             return activity
+        }
+
+        try await pullSharedExpenseGroups(groupsByID: groupsByID)
+    }
+
+    /// Sets your group on shared expenses (a row at all means you decided). Fetches every row each time (one per grouped
+    /// shared expense, so few): a since-cursor could pass a row whose expense hadn't been
+    /// pulled yet, and nothing would fetch it again. Unpushed local picks win.
+    private func pullSharedExpenseGroups(groupsByID: [UUID: ExpenseGroup]) async throws {
+        let rows: [SharedExpenseGroupRow] = try await backend.fetchChanged(Self.sharedExpenseGroupsTable, since: nil)
+        guard !rows.isEmpty else { return }
+        let shared = try context.fetch(FetchDescriptor<Expense>()).filter { $0.syncTable == "expenses" && !$0.groupNeedsSync }
+        let byRemoteID = Dictionary(shared.compactMap { e in e.remoteID.map { ($0, e) } }, uniquingKeysWith: { a, _ in a })
+        SyncChangeTracker.applyingSyncChanges(in: context) {
+            for row in rows {
+                guard let expense = byRemoteID[row.expense_id] else { continue }
+                let group = row.group_id.flatMap { groupsByID[$0] }
+                if expense.group?.persistentModelID != group?.persistentModelID {
+                    expense.group = group
+                }
+                if !expense.groupDecided {
+                    expense.groupDecided = true
+                }
+            }
         }
     }
 
