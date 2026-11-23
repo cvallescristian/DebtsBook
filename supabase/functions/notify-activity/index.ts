@@ -12,7 +12,7 @@
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { type ActivityRecord, isStale, message, recipientFor, timingSafeEqual } from "./logic.ts";
+import { type ActivityRecord, isStale, message, recipientFor, timingSafeEqual, wantsNotification } from "./logic.ts";
 
 const BUNDLE_ID = "Cristian.DebtsBook";
 const APNS_HOSTS: Record<string, string> = {
@@ -92,10 +92,11 @@ Deno.serve(async (req) => {
   const recipient = recipientFor(connection, activity.actor_user_id);
   if (!recipient) return new Response("No recipient", { status: 200 });
 
-  const { data: tokens } = await supabase
+  const { data: devices } = await supabase
     .from("device_tokens")
-    .select("token, env")
+    .select("token, env, notify_expense_changes, notify_paid, notify_settled_up")
     .eq("user_id", recipient);
+  const tokens = devices?.filter((device) => wantsNotification(device, activity.type));
   if (!tokens?.length) return new Response("No devices", { status: 200 });
 
   // The name the recipient gave this friend in their own app.
@@ -114,6 +115,10 @@ Deno.serve(async (req) => {
       sound: "default",
       "thread-id": activity.connection_id,
     },
+    // Read by the app to open the right screen when the notification is tapped.
+    type: activity.type,
+    expense_id: activity.expense_id ?? null,
+    connection_id: activity.connection_id,
   });
   const jwt = await apnsJWT();
 

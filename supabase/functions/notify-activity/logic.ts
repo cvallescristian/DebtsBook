@@ -8,6 +8,13 @@ export interface ActivityRecord {
   amount: number;
   actor_user_id: string | null;
   date: string;
+  expense_id?: string | null;
+}
+
+export interface DevicePreferences {
+  notify_expense_changes: boolean;
+  notify_paid: boolean;
+  notify_settled_up: boolean;
 }
 
 export const STALE_AFTER_MS = 10 * 60 * 1000;
@@ -34,6 +41,22 @@ export function recipientFor(
   const recipient = connection.user_a === actorUserID ? connection.user_b : connection.user_a;
   if (!recipient || recipient === actorUserID) return null;
   return recipient;
+}
+
+/** Whether a device's switches allow this activity type. Unknown types only follow the master switch. */
+export function wantsNotification(device: DevicePreferences, type: string): boolean {
+  switch (type) {
+    case "created":
+    case "updated":
+    case "deleted":
+      return device.notify_expense_changes;
+    case "paid":
+      return device.notify_paid;
+    case "settledUp":
+      return device.notify_settled_up;
+    default:
+      return true;
+  }
 }
 
 export function message(activity: ActivityRecord, friendName: string): { title: string; body: string } {

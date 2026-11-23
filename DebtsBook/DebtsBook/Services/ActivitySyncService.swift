@@ -11,6 +11,7 @@ private struct RemoteActivity: Decodable {
     let actor_user_id: UUID?
     let paid_by_user_id: UUID?
     let date: Date
+    let expense_id: UUID?
 }
 
 private struct ActivityUpsert: Encodable {
@@ -22,6 +23,7 @@ private struct ActivityUpsert: Encodable {
     let actor_user_id: UUID?
     let paid_by_user_id: UUID?
     let date: Date
+    let expense_id: UUID?
 }
 
 @Observable
@@ -56,7 +58,7 @@ final class ActivitySyncService {
         do {
             let remoteActivities: [RemoteActivity] = try await client
                 .from("activities")
-                .select("id, type, expense_title, amount, actor_user_id, paid_by_user_id, date")
+                .select("id, type, expense_title, amount, actor_user_id, paid_by_user_id, date, expense_id")
                 .eq("connection_id", value: connectionID)
                 .execute()
                 .value
@@ -68,13 +70,23 @@ final class ActivitySyncService {
             let byRemoteID = Dictionary(uniqueKeysWithValues: friendsSyncedActivities.compactMap { activity in
                 activity.remoteID.map { ($0, activity) }
             })
+            let expensesByRemoteID = Dictionary(
+                try context.fetch(FetchDescriptor<Expense>()).compactMap { expense in
+                    expense.remoteID.map { ($0, expense) }
+                },
+                uniquingKeysWith: { first, _ in first }
+            )
 
             for remote in remoteActivities {
                 let performedByMe = remote.actor_user_id == currentUserID
                 let paidByMe = remote.paid_by_user_id == currentUserID
                 let type = ActivityType(rawValue: remote.type) ?? .created
+                let expense = remote.expense_id.flatMap { expensesByRemoteID[$0] }
 
                 if let local = byRemoteID[remote.id] {
+                    if let expense {
+                        local.expense = expense
+                    }
                     local.type = type
                     local.expenseTitle = remote.expense_title
                     local.amount = remote.amount
@@ -89,6 +101,7 @@ final class ActivitySyncService {
                         amount: remote.amount,
                         paidByMe: paidByMe,
                         performedByMe: performedByMe,
+                        expense: expense,
                         friend: friend,
                         date: remote.date
                     )
@@ -140,7 +153,8 @@ final class ActivitySyncService {
             amount: activity.amount,
             actor_user_id: currentUserID,
             paid_by_user_id: paidByUserID,
-            date: activity.date
+            date: activity.date,
+            expense_id: activity.expense?.remoteID
         )
         do {
             try await client.from("activities").upsert(upsert).execute()
