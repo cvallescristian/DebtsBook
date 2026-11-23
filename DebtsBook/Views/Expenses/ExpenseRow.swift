@@ -35,6 +35,7 @@ struct ExpenseRow: View {
                 }
             }
             .font(.caption)
+            ExpenseGroupMenu(expense: expense)
         }
     }
 }

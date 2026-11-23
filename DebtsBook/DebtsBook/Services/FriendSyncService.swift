@@ -101,6 +101,11 @@ final class FriendSyncService {
                         if let remoteID = expense.remoteID {
                             context.insert(SyncTombstone(table: "personal_expenses", remoteID: remoteID))
                         }
+                        // Your own history, so already decided. The group lived on the
+                        // personal_expenses row; it moves to shared_expense_groups with the
+                        // next owner sync.
+                        expense.groupDecided = true
+                        expense.groupNeedsSync = true
                     }
                     for activity in friendActivities {
                         if let remoteID = activity.remoteID {

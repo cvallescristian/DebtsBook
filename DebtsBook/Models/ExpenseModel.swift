@@ -12,6 +12,13 @@ class Expense {
     var remoteID: UUID?
     /// Changed locally since the last push (set by SyncChangeTracker).
     var isDirty: Bool = false
+    /// A shared expense's group changed and isn't uploaded yet. Shared rows never stay
+    /// `isDirty` (their service pushes them right away), but your group for one goes to the
+    /// owner-only shared_expense_groups table with the owner sync.
+    var groupNeedsSync: Bool = false
+    /// You picked a group for this shared expense, or skipped it, so it's out of "To categorize".
+    /// Synced as the existence of your shared_expense_groups row (a null group means skipped).
+    var groupDecided: Bool = false
 
     @Relationship(deleteRule: .nullify)
     var friend: Friend?
@@ -73,6 +80,15 @@ class Expense {
             return true
         }
         return group != nil && myShare > 0
+    }
+
+    /// Shared expenses dated from here on wait in "To categorize"; older history would flood it.
+    static let categorizeCutoff = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 11, day: 23))!
+
+    /// A linked friend's expense where you have a share but haven't picked a group or skipped it.
+    var needsCategorizing: Bool {
+        guard friend?.linkedUserID != nil, group == nil, !groupDecided else { return false }
+        return myShare > 0 && date >= Expense.categorizeCutoff
     }
 
     static func myShare(of amount: Decimal, splitType: SplitType, paidByMe: Bool) -> Decimal {

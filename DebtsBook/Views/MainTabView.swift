@@ -9,9 +9,14 @@ struct MainTabView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Query private var pendingExpenses: [PendingExpense]
+    @Query private var expenses: [Expense]
     @State private var selectedTab: MainTab = .friends
     @State private var router = NotificationRouter.shared
     @State private var notifiedExpense: Expense?
+
+    private var expensesBadge: Int {
+        pendingExpenses.count + expenses.filter(\.needsCategorizing).count
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -24,7 +29,7 @@ struct MainTabView: View {
             Tab("Expenses", systemImage: "dollarsign.circle", value: MainTab.expenses) {
                 ExpensesView()
             }
-            .badge(pendingExpenses.count)
+            .badge(expensesBadge)
             Tab("Activity", systemImage: "clock.arrow.circlepath", value: MainTab.activity) {
                 ActivityView()
             }

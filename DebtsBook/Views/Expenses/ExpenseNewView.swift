@@ -165,6 +165,10 @@ struct ExpenseNewView: View {
         guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, group: selectedGroup, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
+        if expense.friend?.linkedUserID != nil {
+            expense.groupDecided = true
+            expense.groupNeedsSync = true
+        }
         DataStore.insert(expense, into: modelContext)
         let activity = Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend)
         DataStore.insert(activity, into: modelContext)

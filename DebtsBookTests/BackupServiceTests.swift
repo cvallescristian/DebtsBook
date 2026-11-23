@@ -21,7 +21,7 @@ struct BackupServiceTests {
     /// payments are short-lived, device-only drafts.
     private static let notBackedUp: [String: Set<String>] = [
         "Friend": ["remoteID", "linkedUserID", "connectionID", "lastSyncedAt", "isDirty"],
-        "Expense": ["remoteID", "isDirty"],
+        "Expense": ["remoteID", "isDirty", "groupNeedsSync", "groupDecided"],
         "Activity": ["remoteID", "isDirty"],
         "ExpenseGroup": ["remoteID", "isDirty"],
         "Budget": ["remoteID", "isDirty"],
