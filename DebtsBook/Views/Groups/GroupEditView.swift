@@ -14,6 +14,7 @@ struct GroupEditView: View {
     @Environment(\.modelContext) private var modelContext
     @FocusState private var isInputFocused: Bool
     @Query private var budgets: [Budget]
+    @Query private var expenses: [Expense]
 
     init(group: ExpenseGroup, onDelete: @escaping () -> Void = {}) {
         self.group = group
@@ -91,6 +92,11 @@ struct GroupEditView: View {
         // Budget.group nullifies on delete, which would turn this group's budgets into overall ones.
         for budget in budgets where budget.group?.persistentModelID == group.persistentModelID {
             DataStore.delete(budget, from: modelContext)
+        }
+        // Clear the link now rather than waiting for the nullify on save: signed out, nothing
+        // saves, and Reports would read the deleted group's name and crash.
+        for expense in expenses where expense.group?.persistentModelID == group.persistentModelID {
+            expense.group = nil
         }
         DataStore.delete(group, from: modelContext)
     }

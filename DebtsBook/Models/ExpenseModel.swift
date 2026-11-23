@@ -58,6 +58,34 @@ class Expense {
     var loggedAmount: Decimal {
         isPersonal ? amount : owedAmount
     }
+
+    /// What you yourself spent, for Reports and budgets: the full amount for personal expenses,
+    /// your part of the split for shared ones. Settling up doesn't change it, since paying a
+    /// friend back is moving money, not new spending.
+    var myShare: Decimal {
+        guard friend != nil else { return amount }
+        return Expense.myShare(of: amount, splitType: splitType, paidByMe: paidByMe)
+    }
+
+    /// Personal expenses always count as spending; shared ones only once you give them a group.
+    var countsAsSpending: Bool {
+        if isPersonal {
+            return true
+        }
+        return group != nil && myShare > 0
+    }
+
+    static func myShare(of amount: Decimal, splitType: SplitType, paidByMe: Bool) -> Decimal {
+        switch splitType {
+        case .equally:
+            return amount / 2
+        case .fullAmount:
+            if paidByMe {
+                return 0
+            }
+            return amount
+        }
+    }
 }
 
 enum SplitType: String, Codable {

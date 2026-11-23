@@ -20,6 +20,7 @@ struct BudgetLimitsEditView: View {
 
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
     @Query private var budgets: [Budget]
+    @Query private var expenses: [Expense]
 
     @State private var amounts: [BudgetKey: Decimal?] = [:]
     @State private var showingNewGroup = false
@@ -182,6 +183,11 @@ struct BudgetLimitsEditView: View {
             DataStore.delete(budget, from: modelContext)
         }
         amounts = amounts.filter { $0.key.groupID != group.persistentModelID }
+        // Clear the link now rather than waiting for the nullify on save: signed out, nothing
+        // saves, and Reports would read the deleted group's name and crash.
+        for expense in expenses where expense.group?.persistentModelID == group.persistentModelID {
+            expense.group = nil
+        }
         DataStore.delete(group, from: modelContext)
     }
 

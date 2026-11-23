@@ -21,13 +21,19 @@ struct FriendRow: View {
                 }
 
                 if friend.linkedUserID != nil {
-                    Label("Connected", systemImage: "link.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
+                    HStack(spacing: 4) {
+                        Image(systemName: "link.circle.fill")
+                        Text("Connected")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.blue)
                 } else if friend.connectionID != nil {
-                    Label("Invite Pending", systemImage: "hourglass")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
+                    HStack(spacing: 4) {
+                        Image(systemName: "hourglass")
+                        Text("Invite Pending")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.orange)
                 }
             }
 

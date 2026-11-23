@@ -24,19 +24,19 @@ struct ReportsView: View {
         periodOffset == 0
     }
 
-    /// False once the selected period holds the oldest personal expense (or there are none).
+    /// False once the selected period holds the oldest spending expense (or there are none).
     private var canGoBack: Bool {
-        guard let oldest = expenses.last(where: { $0.isPersonal }) else { return false }
+        guard let oldest = expenses.last(where: { $0.countsAsSpending }) else { return false }
         return oldest.date < selectedInterval.start
     }
 
     private var expensesInRange: [Expense] {
         let interval = selectedInterval
-        return expenses.filter { $0.isPersonal && interval.contains($0.date) }
+        return expenses.filter { $0.countsAsSpending && interval.contains($0.date) }
     }
 
     private var total: Decimal {
-        expensesInRange.reduce(0) { $0 + $1.amount }
+        expensesInRange.reduce(0) { $0 + $1.myShare }
     }
 
     private var budgetForSelectedRange: Budget? {
@@ -102,14 +102,14 @@ struct ReportsView: View {
     }
 
     private var ungroupedSpent: Decimal {
-        expensesInRange.filter { $0.group == nil }.reduce(0) { $0 + $1.amount }
+        expensesInRange.filter { $0.group == nil }.reduce(0) { $0 + $1.myShare }
     }
 
     private func groupSpent(_ group: ExpenseGroup) -> Decimal {
         let interval = selectedInterval
         return expenses
-            .filter { $0.isPersonal && $0.group?.persistentModelID == group.persistentModelID && interval.contains($0.date) }
-            .reduce(0) { $0 + $1.amount }
+            .filter { $0.countsAsSpending && $0.group?.persistentModelID == group.persistentModelID && interval.contains($0.date) }
+            .reduce(0) { $0 + $1.myShare }
     }
 
     private func groupBudget(_ group: ExpenseGroup) -> Budget? {
@@ -194,7 +194,7 @@ struct ReportsView: View {
                 ReportsPeriodPicker(
                     range: selectedRange,
                     selected: selectedInterval,
-                    spendingDates: expenses.filter(\.isPersonal).map(\.date)
+                    spendingDates: expenses.filter(\.countsAsSpending).map(\.date)
                 ) { date in
                     periodOffset = selectedRange.offset(of: date)
                 }

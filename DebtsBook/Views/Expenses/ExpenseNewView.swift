@@ -49,8 +49,22 @@ struct ExpenseNewView: View {
     }
 
     private var budgetWarnings: [String] {
-        guard let amount, isPersonal else { return [] }
-        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, groupID: groupID)
+        guard let spendingAmount else { return [] }
+        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: spendingAmount, date: date, groupID: groupID)
+    }
+
+    private var sharedShare: Decimal {
+        Expense.myShare(of: amount ?? 0, splitType: splitType, paidByMe: paidByMe)
+    }
+
+    /// What this expense would add to Reports and budgets, or nil if it doesn't count there.
+    private var spendingAmount: Decimal? {
+        guard let amount else { return nil }
+        if isPersonal {
+            return amount
+        }
+        guard groupID != nil, sharedShare > 0 else { return nil }
+        return sharedShare
     }
 
     var body: some View {
@@ -75,15 +89,7 @@ struct ExpenseNewView: View {
                     .labelsHidden()
                 }
                 if isPersonal && !groups.isEmpty {
-                    Section("Group") {
-                        Picker("Group", selection: $groupID) {
-                            Text("None").tag(nil as PersistentIdentifier?)
-                            ForEach(groups) { group in
-                                Text(group.name)
-                                    .tag(group.persistentModelID as PersistentIdentifier?)
-                            }
-                        }
-                    }
+                    ExpenseGroupSection(groups: groups, groupID: $groupID, sharedShare: nil)
                 }
                 if !isPersonal {
                     Section("Who?") {
@@ -103,6 +109,9 @@ struct ExpenseNewView: View {
                                 paidByMe: $paidByMe,
                                 splitType: $splitType
                             )
+                        }
+                        if !groups.isEmpty {
+                            ExpenseGroupSection(groups: groups, groupID: $groupID, sharedShare: sharedShare)
                         }
                     }
                 }
@@ -155,7 +164,7 @@ struct ExpenseNewView: View {
         guard let amount else { return }
         guard isPersonal || selectedFriend != nil else { return }
         let trimmedComment = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, group: isPersonal ? selectedGroup : nil, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
+        let expense = Expense(title: title, amount: amount, friend: isPersonal ? nil : selectedFriend, group: selectedGroup, paidByMe: paidByMe, splitType: splitType, date: date, comment: trimmedComment.isEmpty ? nil : trimmedComment)
         DataStore.insert(expense, into: modelContext)
         let activity = Activity(type: .created, expenseTitle: expense.title, friendName: isPersonal ? nil : selectedFriend?.name, amount: expense.loggedAmount, paidByMe: paidByMe, expense: expense, friend: isPersonal ? nil : selectedFriend)
         DataStore.insert(activity, into: modelContext)
