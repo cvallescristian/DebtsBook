@@ -23,27 +23,7 @@ struct FriendView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                HStack {
-                    if overallBalance > 0 {
-                        Text("Overall, you are owed")
-                        Text(overallBalance, format: .currency(code: "NZD"))
-                            .foregroundColor(.green)
-                            .bold()
-                    } else if overallBalance < 0 {
-                        Text("Overall, you owe")
-                        Text(-overallBalance, format: .currency(code: "NZD"))
-                            .foregroundColor(.red)
-                            .bold()
-                    } else {
-                        Text("All settled up")
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-
-                friendsList
-            }
+            friendsList
             .navigationTitle("Friends")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -77,25 +57,50 @@ struct FriendView: View {
         }
     }
 
+    private var summary: some View {
+        HStack(spacing: 4) {
+            if overallBalance > 0 {
+                Text("Overall, you are owed")
+                Text(overallBalance, format: .currency(code: "NZD"))
+                    .foregroundColor(.green)
+                    .bold()
+            } else if overallBalance < 0 {
+                Text("Overall, you owe")
+                Text(-overallBalance, format: .currency(code: "NZD"))
+                    .foregroundColor(.red)
+                    .bold()
+            } else {
+                Text("All settled up")
+            }
+        }
+        .font(.subheadline)
+        .foregroundStyle(.primary)
+        .textCase(nil)
+    }
+
     private var friendsList: some View {
         List {
-            ForEach(Array(friends.enumerated()), id: \.element.persistentModelID) { index, friend in
-                NavigationLink {
-                    FriendDetailView(friend: friend)
-                } label: {
-                    VStack(spacing: 0) {
-                        FriendRow(friend: friend, balance: balance(for: friend))
-                            .padding(.vertical, 8)
-                        if index < friends.count - 1 {
-                            Rectangle()
-                                .fill(Color(.separator))
-                                .frame(height: 0.5)
-                                .padding(.leading, 48)
+            Section {
+                ForEach(Array(friends.enumerated()), id: \.element.persistentModelID) { index, friend in
+                    NavigationLink {
+                        FriendDetailView(friend: friend)
+                    } label: {
+                        VStack(spacing: 0) {
+                            FriendRow(friend: friend, balance: balance(for: friend))
+                                .padding(.vertical, 8)
+                            if index < friends.count - 1 {
+                                Rectangle()
+                                    .fill(Color(.separator))
+                                    .frame(height: 0.5)
+                                    .padding(.leading, 48)
+                            }
                         }
                     }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .listRowSeparator(.hidden)
                 }
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                .listRowSeparator(.hidden)
+            } header: {
+                summary
             }
         }
         .overlay {
