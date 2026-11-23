@@ -6,6 +6,7 @@ struct FriendView: View {
     @State private var showingFriendNew: Bool = false
     @State private var showingRedeemInvite: Bool = false
     @State private var showingSignInRequired: Bool = false
+    @State private var expandedFriend: Friend?
     var authService = AuthService.shared
     @Environment(\.modelContext) private var modelContext
     @Query private var friends: [Friend]
@@ -55,6 +56,7 @@ struct FriendView: View {
                 SignInRequiredView()
             }
         }
+        .expandedAvatar($expandedFriend)
     }
 
     private var summary: some View {
@@ -86,7 +88,17 @@ struct FriendView: View {
                         FriendDetailView(friend: friend)
                     } label: {
                         VStack(spacing: 0) {
+                            // The tap target sits over the row's avatar rather than inside FriendRow,
+                            // so rows don't redraw (and read a just-deleted friend) on every list update.
                             FriendRow(friend: friend, balance: balance(for: friend))
+                                .overlay(alignment: .leading) {
+                                    Color.clear
+                                        .frame(width: 44, height: 44)
+                                        .contentShape(Circle())
+                                        .highPriorityGesture(TapGesture().onEnded { expandedFriend = friend })
+                                        .accessibilityAddTraits(.isButton)
+                                        .accessibilityLabel("Show \(friend.name)'s photo")
+                                }
                                 .padding(.vertical, 8)
                             if index < friends.count - 1 {
                                 Rectangle()

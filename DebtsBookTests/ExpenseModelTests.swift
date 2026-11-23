@@ -98,4 +98,26 @@ struct ExpenseModelTests {
         let shared = Expense(title: "Lunch", amount: 20, friend: friend, paidByMe: true)
         #expect([personal, shared].netBalance == 10)
     }
+
+    @Test func periodTotalsOnlyCountExpensesInTheInterval() {
+        let friend = Friend(name: "Ana")
+        let now = Date()
+        let week = BudgetPeriod.week.dateInterval(containing: now)
+        let lastWeek = BudgetPeriod.week.dateInterval(offset: -1, from: now).start.addingTimeInterval(3600)
+        let dinner = Expense(title: "Dinner", amount: 100, friend: friend, paidByMe: true, splitType: .equally, date: now)
+        let taxi = Expense(title: "Taxi", amount: 30, friend: friend, paidByMe: false, splitType: .fullAmount, date: now)
+        let old = Expense(title: "Old", amount: 500, friend: friend, date: lastWeek)
+
+        let inWeek = [dinner, taxi, old].dated(in: week)
+
+        #expect(inWeek.count == 2)
+        #expect(inWeek.totalAmount == 130)
+        #expect(inWeek.totalMyShare == 80)
+    }
+
+    @Test func expenseOnAPeriodBoundaryBelongsToTheNextPeriod() {
+        let week = BudgetPeriod.week.dateInterval(containing: Date())
+        let onBoundary = Expense(title: "Midnight", amount: 10, date: week.end)
+        #expect([onBoundary].dated(in: week).isEmpty)
+    }
 }

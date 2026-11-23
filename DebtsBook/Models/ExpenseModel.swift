@@ -116,4 +116,19 @@ extension Array where Element == Expense {
             return total + expense.signedAmount
         }
     }
+
+    /// Expenses dated within `interval`.
+    func dated(in interval: DateInterval) -> [Expense] {
+        filter { interval.contains($0.date) && $0.date < interval.end }
+    }
+
+    /// The full amount of every expense, regardless of who paid or how it's split.
+    var totalAmount: Decimal {
+        reduce(0) { $0 + $1.amount }
+    }
+
+    /// Your own part of these expenses (see `Expense.myShare`).
+    var totalMyShare: Decimal {
+        reduce(0) { $0 + $1.myShare }
+    }
 }
