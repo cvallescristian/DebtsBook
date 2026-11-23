@@ -10,7 +10,6 @@ struct ReportsView: View {
     @State private var showingBudgetEdit: Bool = false
     @State private var editingExpense: Expense?
     @State private var groupFilter: String?
-    @State private var showingPeriodPicker = false
     @State private var limitEditingGroup: ExpenseGroup?
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query private var budgets: [Budget]
@@ -22,12 +21,6 @@ struct ReportsView: View {
 
     private var isCurrentPeriod: Bool {
         periodOffset == 0
-    }
-
-    /// False once the selected period holds the oldest spending expense (or there are none).
-    private var canGoBack: Bool {
-        guard let oldest = expenses.last(where: { $0.countsAsSpending }) else { return false }
-        return oldest.date < selectedInterval.start
     }
 
     private var expensesInRange: [Expense] {
@@ -137,7 +130,7 @@ struct ReportsView: View {
                     groupFilter = nil
                 }
 
-                periodNavigator
+                PeriodNavigator(range: selectedRange, offset: $periodOffset, dates: expenses.filter(\.countsAsSpending).map(\.date))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
@@ -189,15 +182,6 @@ struct ReportsView: View {
             }
             .sheet(item: $limitEditingGroup) { group in
                 BudgetLimitsEditView(group: group, focusPeriod: selectedRange)
-            }
-            .sheet(isPresented: $showingPeriodPicker) {
-                ReportsPeriodPicker(
-                    range: selectedRange,
-                    selected: selectedInterval,
-                    spendingDates: expenses.filter(\.countsAsSpending).map(\.date)
-                ) { date in
-                    periodOffset = selectedRange.offset(of: date)
-                }
             }
         }
     }
@@ -289,77 +273,6 @@ struct ReportsView: View {
         } footer: {
             Text("Reports only track personal expenses (\"Just Me\"). Expenses shared with friends aren't included.")
         }
-    }
-
-    private var relativePeriodTitle: String {
-        let unit = selectedRange.rawValue
-        switch periodOffset {
-        case 0: return "This \(unit)"
-        case -1: return "Last \(unit)"
-        default: return "\(-periodOffset) \(unit)s Ago"
-        }
-    }
-
-    private var periodNavigator: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 0) {
-                periodArrow(systemImage: "chevron.left", label: "Previous \(selectedRange.rawValue)") {
-                    periodOffset -= 1
-                }
-                .disabled(!canGoBack)
-
-                Button {
-                    showingPeriodPicker = true
-                } label: {
-                    VStack(spacing: 2) {
-                        HStack(spacing: 4) {
-                            Text(relativePeriodTitle)
-                                .font(.headline)
-                            Image(systemName: "chevron.down")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.secondary)
-                        }
-                        Text(selectedRange.label(for: selectedInterval))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .contentTransition(.numericText())
-                .accessibilityHint("Choose a \(selectedRange.rawValue.lowercased())")
-
-                periodArrow(systemImage: "chevron.right", label: "Next \(selectedRange.rawValue)") {
-                    periodOffset += 1
-                }
-                .disabled(isCurrentPeriod)
-            }
-            .padding(4)
-            .background(.thinMaterial, in: Capsule())
-
-            if !isCurrentPeriod {
-                Button {
-                    periodOffset = 0
-                } label: {
-                    Label("Back to This \(selectedRange.rawValue)", systemImage: "arrow.uturn.forward")
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-            }
-        }
-        .animation(.default, value: periodOffset)
-    }
-
-    private func periodArrow(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
-                .frame(width: 44, height: 44)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.borderless)
-        .accessibilityLabel(label)
     }
 
     /// Group names with spending in the visible periods, alphabetical, with "No Group" last.

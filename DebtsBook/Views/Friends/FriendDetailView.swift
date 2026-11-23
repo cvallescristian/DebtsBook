@@ -1,15 +1,9 @@
 import SwiftUI
 import SwiftData
 
-private enum FriendDetailTab: String, CaseIterable {
-    case expenses = "Expenses"
-    case activity = "Activity"
-}
-
 struct FriendDetailView: View {
 
     let friend: Friend
-    @State private var selectedTab: FriendDetailTab = .expenses
     @State private var showingFriendEdit: Bool = false
     @State private var showingExpenseNew: Bool = false
     @State private var editingExpense: Expense?
@@ -19,6 +13,9 @@ struct FriendDetailView: View {
     @State private var showingSignInRequired: Bool = false
     @State private var isSyncingExpenses: Bool = false
     @State private var showingDisconnectError: Bool = false
+    @State private var selectedRange: BudgetPeriod = .week
+    @State private var periodOffset: Int = 0
+    @Environment(\.expandFriendAvatar) private var expandFriendAvatar
     var authService = AuthService.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -37,6 +34,16 @@ struct FriendDetailView: View {
             .sorted { $0.date > $1.date }
     }
 
+    private static let previewCount = 10
+
+    private var selectedInterval: DateInterval {
+        selectedRange.dateInterval(offset: periodOffset)
+    }
+
+    private var expensesInPeriod: [Expense] {
+        friendsExpenses.dated(in: selectedInterval)
+    }
+
     private var balance: Decimal {
         friendsExpenses.netBalance
     }
@@ -53,7 +60,13 @@ struct FriendDetailView: View {
     var body: some View {
         List {
             VStack(spacing: 12) {
-                FriendAvatar(name: friend.name, photoData: friend.photoData, iconName: friend.iconName, size: 64)
+                Button {
+                    expandFriendAvatar?(friend)
+                } label: {
+                    FriendAvatar(name: friend.name, photoData: friend.photoData, iconName: friend.iconName, size: 64)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Show \(friend.name)'s photo")
 
                 HStack {
                     if balance > 0 {
@@ -113,24 +126,28 @@ struct FriendDetailView: View {
                 .listRowSeparator(.hidden)
             }
 
-            Picker("View", selection: $selectedTab) {
-                ForEach(FriendDetailTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            if friendsExpenses.isEmpty {
+                ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses with \(friend.name) will show up here."))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else {
+                FriendPeriodCard(
+                    range: $selectedRange,
+                    offset: $periodOffset,
+                    dates: friendsExpenses.map(\.date),
+                    spentTogether: expensesInPeriod.totalAmount,
+                    yourShare: expensesInPeriod.totalMyShare
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
 
-            switch selectedTab {
-            case .expenses:
-                if friendsExpenses.isEmpty {
-                    ContentUnavailableView("No Expenses", systemImage: "dollarsign.circle", description: Text("Expenses with \(friend.name) will show up here."))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                } else {
-                    Section {
-                        ForEach(friendsExpenses) { expense in
+                Section {
+                    if expensesInPeriod.isEmpty {
+                        Text("No expenses this \(selectedRange.rawValue.lowercased()).")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(expensesInPeriod.prefix(Self.previewCount)) { expense in
                             Button {
                                 editingExpense = expense
                             } label: {
@@ -139,22 +156,20 @@ struct FriendDetailView: View {
                             .tint(.primary)
                             .settleSwipeAction(for: expense, in: modelContext)
                         }
-                    }
-                }
-            case .activity:
-                if friendsActivities.isEmpty {
-                    ContentUnavailableView("No Activity", systemImage: "clock.arrow.circlepath", description: Text("Changes you make will show up here."))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                } else {
-                    Section {
-                        ForEach(friendsActivities) { activity in
-                            ActivityRow(activity: activity)
+                        if expensesInPeriod.count > Self.previewCount {
+                            NavigationLink {
+                                FriendExpenseListView(title: selectedRange.label(for: selectedInterval), expenses: expensesInPeriod)
+                            } label: {
+                                Text("See All (\(expensesInPeriod.count))")
+                                    .foregroundStyle(.tint)
+                            }
                         }
                     }
                 }
             }
         }
+        // Room for the floating Add Expense button, so it never covers the last row.
+        .contentMargins(.bottom, 88, for: .scrollContent)
         .overlay(alignment: .bottomTrailing) {
             Button {
                 showingExpenseNew = true
@@ -205,12 +220,20 @@ struct FriendDetailView: View {
                     }
                 }
             }
-            ToolbarItem(placement: .confirmationAction) {
+            ToolbarItemGroup(placement: .confirmationAction) {
+                NavigationLink {
+                    FriendActivityView(friend: friend)
+                } label: {
+                    Image(systemName: "clock.arrow.circlepath")
+                }
+                .accessibilityLabel("Activity")
+
                 Button {
                     showingFriendEdit = true
                 } label: {
                     Image(systemName: "square.and.pencil")
                 }
+                .accessibilityLabel("Edit Friend")
             }
         }
         .sheet(isPresented: $showingFriendEdit){
@@ -288,6 +311,163 @@ struct FriendDetailView: View {
         if isConnected {
             Task { await ActivitySyncService.shared.push(activity: activity) }
         }
+    }
+}
+
+private struct FriendExpenseListView: View {
+    let title: String
+    let expenses: [Expense]
+    @State private var editingExpense: Expense?
+    @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        List(expenses) { expense in
+            Button {
+                editingExpense = expense
+            } label: {
+                ExpenseRow(expense: expense)
+            }
+            .tint(.primary)
+            .settleSwipeAction(for: expense, in: modelContext)
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingExpense) { expense in
+            ExpenseEditView(expense: expense)
+        }
+    }
+}
+
+/// One card for picking the period and seeing its totals: ‹ › to step, the title opens the
+/// calendar (where the week/month/year range is chosen too), ↩ returns to now.
+private struct FriendPeriodCard: View {
+    @Binding var range: BudgetPeriod
+    @Binding var offset: Int
+    let dates: [Date]
+    let spentTogether: Decimal
+    let yourShare: Decimal
+
+    @State private var showingPicker = false
+
+    private var interval: DateInterval {
+        range.dateInterval(offset: offset)
+    }
+
+    private var canGoBack: Bool {
+        guard let oldest = dates.min() else { return false }
+        return oldest < interval.start
+    }
+
+    private var title: String {
+        switch offset {
+        case 0: return "This \(range.rawValue)"
+        case -1: return "Last \(range.rawValue)"
+        default: return "\(-offset) \(range.rawValue)s Ago"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 0) {
+                arrow("chevron.left", label: "Previous \(range.rawValue)") {
+                    offset -= 1
+                }
+                .disabled(!canGoBack)
+
+                Button {
+                    showingPicker = true
+                } label: {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(title)
+                                .font(.headline)
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(range.label(for: interval))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Choose a week, month or year")
+
+                if offset != 0 {
+                    arrow("arrow.uturn.forward", label: "Back to This \(range.rawValue)") {
+                        offset = 0
+                    }
+                }
+
+                arrow("chevron.right", label: "Next \(range.rawValue)") {
+                    offset += 1
+                }
+                .disabled(offset == 0)
+            }
+
+            Divider()
+
+            HStack {
+                total("Spent together", spentTogether, alignment: .leading)
+                Spacer()
+                total("Your share", yourShare, alignment: .trailing)
+            }
+        }
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .animation(.default, value: offset)
+        .sheet(isPresented: $showingPicker) {
+            ReportsPeriodPicker(range: range, selected: interval, spendingDates: dates, allowsRangeChange: true) { newRange, date in
+                range = newRange
+                offset = newRange.offset(of: date)
+            }
+        }
+    }
+
+    private func total(_ label: String, _ amount: Decimal, alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 2) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(amount, format: .currency(code: "NZD"))
+                .font(.title3.bold())
+                .contentTransition(.numericText())
+        }
+    }
+
+    private func arrow(_ systemImage: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel(label)
+    }
+}
+
+private struct FriendActivityView: View {
+    let friend: Friend
+    @Query(sort: \Activity.date, order: .reverse) private var activities: [Activity]
+
+    private var friendsActivities: [Activity] {
+        activities.filter { $0.friend?.persistentModelID == friend.persistentModelID }
+    }
+
+    var body: some View {
+        List(friendsActivities) { activity in
+            ActivityRow(activity: activity)
+        }
+        .overlay {
+            if friendsActivities.isEmpty {
+                ContentUnavailableView("No Activity", systemImage: "clock.arrow.circlepath", description: Text("Changes you make will show up here."))
+            }
+        }
+        .navigationTitle("Activity")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -5,10 +5,20 @@ struct FriendRow: View {
 
     let friend: Friend
     let balance: Decimal
+    /// When set, tapping the avatar calls this instead of opening the row.
+    var onAvatarTap: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
-            FriendAvatar(name: friend.name, photoData: friend.photoData, iconName: friend.iconName)
+            if let onAvatarTap {
+                FriendAvatar(name: friend.name, photoData: friend.photoData, iconName: friend.iconName)
+                    .contentShape(Circle())
+                    .highPriorityGesture(TapGesture().onEnded(onAvatarTap))
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel("Show \(friend.name)'s photo")
+            } else {
+                FriendAvatar(name: friend.name, photoData: friend.photoData, iconName: friend.iconName)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {

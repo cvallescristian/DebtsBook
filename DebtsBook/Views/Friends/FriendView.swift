@@ -6,6 +6,7 @@ struct FriendView: View {
     @State private var showingFriendNew: Bool = false
     @State private var showingRedeemInvite: Bool = false
     @State private var showingSignInRequired: Bool = false
+    @State private var expandedFriend: Friend?
     var authService = AuthService.shared
     @Environment(\.modelContext) private var modelContext
     @Query private var friends: [Friend]
@@ -55,6 +56,7 @@ struct FriendView: View {
                 SignInRequiredView()
             }
         }
+        .expandedAvatar($expandedFriend)
     }
 
     private var summary: some View {
@@ -86,7 +88,9 @@ struct FriendView: View {
                         FriendDetailView(friend: friend)
                     } label: {
                         VStack(spacing: 0) {
-                            FriendRow(friend: friend, balance: balance(for: friend))
+                            FriendRow(friend: friend, balance: balance(for: friend)) {
+                                expandedFriend = friend
+                            }
                                 .padding(.vertical, 8)
                             if index < friends.count - 1 {
                                 Rectangle()

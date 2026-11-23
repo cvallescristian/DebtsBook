@@ -4,24 +4,35 @@ import SwiftUI
 /// Only periods between the oldest personal expense and now can be picked.
 struct ReportsPeriodPicker: View {
 
-    let range: BudgetPeriod
+    /// The range of `selected`.
+    let selectedRange: BudgetPeriod
     let selected: DateInterval
     /// Dates of personal expenses, used to mark periods and days that have spending.
     let spendingDates: [Date]
-    let onSelect: (Date) -> Void
+    /// Shows a Week / Month / Year switch at the top so the range can be changed here too.
+    let allowsRangeChange: Bool
+    let onSelect: (BudgetPeriod, Date) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    /// The range being browsed; only differs from `selectedRange` when `allowsRangeChange`.
+    @State private var range: BudgetPeriod
     /// The month (week view) or year (month view) being shown.
     @State private var page: Date
 
     private let calendar = Calendar.current
 
-    init(range: BudgetPeriod, selected: DateInterval, spendingDates: [Date], onSelect: @escaping (Date) -> Void) {
-        self.range = range
+    init(range: BudgetPeriod, selected: DateInterval, spendingDates: [Date], allowsRangeChange: Bool = false, onSelect: @escaping (BudgetPeriod, Date) -> Void) {
+        self.selectedRange = range
         self.selected = selected
         self.spendingDates = spendingDates
+        self.allowsRangeChange = allowsRangeChange
         self.onSelect = onSelect
+        _range = State(initialValue: range)
         _page = State(initialValue: selected.start)
+    }
+
+    private func isSelected(_ interval: DateInterval) -> Bool {
+        range == selectedRange && interval.start == selected.start
     }
 
     private var earliest: Date {
@@ -50,6 +61,16 @@ struct ReportsPeriodPicker: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    if allowsRangeChange {
+                        Picker("Range", selection: $range) {
+                            ForEach(BudgetPeriod.allCases, id: \.self) { range in
+                                Text(range.rawValue).tag(range)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                    }
+
                     switch range {
                     case .week: weekCalendar
                     case .month: monthGrid
@@ -72,7 +93,7 @@ struct ReportsPeriodPicker: View {
     }
 
     private func choose(_ interval: DateInterval) {
-        onSelect(interval.start)
+        onSelect(range, interval.start)
         dismiss()
     }
 
@@ -152,7 +173,7 @@ struct ReportsPeriodPicker: View {
     }
 
     private func weekRow(_ week: DateInterval) -> some View {
-        let isSelected = week.start == selected.start
+        let isSelected = isSelected(week)
         let available = isAvailable(week)
         let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: week.start) }
 
@@ -214,7 +235,7 @@ struct ReportsPeriodPicker: View {
     }
 
     private func periodCell(_ interval: DateInterval, label: String) -> some View {
-        let isSelected = interval.start == selected.start
+        let isSelected = isSelected(interval)
         let available = isAvailable(interval)
 
         return Button {
