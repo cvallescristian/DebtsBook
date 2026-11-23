@@ -195,7 +195,7 @@ struct PersonalActivityRow: Codable, OwnerRow {
     }
 }
 
-/// Your group for a connection-shared expense (migration 0014), one row per owner and
+/// Your group for a connection-shared expense (migration 0015), one row per owner and
 /// expense. The expense row itself stays with ExpenseSyncService.
 struct SharedExpenseGroupRow: Codable {
     var owner_id: UUID?

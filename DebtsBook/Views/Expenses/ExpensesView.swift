@@ -10,7 +10,7 @@ private enum ExpenseFilter: String, CaseIterable {
 
 struct ExpensesView: View {
     @State private var showingExpenseNew: Bool = false
-    @State private var editingExpense: Expense?
+    @State private var viewingExpense: Expense?
     @State private var loggingPending: PendingExpense?
     @State private var selectedFilter: ExpenseFilter = .all
     @Environment(\.modelContext) private var modelContext
@@ -106,7 +106,7 @@ struct ExpensesView: View {
                 Section {
                     ForEach(filteredExpenses) { expense in
                         Button {
-                            editingExpense = expense
+                            viewingExpense = expense
                         } label: {
                             ExpenseRow(expense: expense)
                         }
@@ -136,8 +136,8 @@ struct ExpensesView: View {
             .sheet(isPresented: $showingExpenseNew){
                 ExpenseNewView()
             }
-            .sheet(item: $editingExpense) { expense in
-                ExpenseEditView(expense: expense)
+            .sheet(item: $viewingExpense) { expense in
+                ExpenseDetailView(expense: expense)
             }
             .sheet(item: $loggingPending) { pending in
                 ExpenseNewView(pending: pending)

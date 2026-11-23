@@ -1,4 +1,4 @@
--- Run this in the Supabase SQL editor after 0013_group_icon_color.sql.
+-- Run this in the Supabase SQL editor after 0014_notification_settings.sql.
 -- Additive only (new table): safe to run on a live project. Take a production backup first.
 --
 -- A shared expense (connection-shared `expenses`) can sit in one of your groups so your

@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { type ActivityRecord, isStale, message, recipientFor, STALE_AFTER_MS, timingSafeEqual } from "./logic.ts";
+import { type ActivityRecord, isStale, message, recipientFor, STALE_AFTER_MS, timingSafeEqual, wantsNotification } from "./logic.ts";
 
 const activity = (overrides: Partial<ActivityRecord> = {}): ActivityRecord => ({
   id: "a1",
@@ -60,4 +60,26 @@ Deno.test("messages per activity type", () => {
     body: "$56.50",
   });
   assertEquals(message(activity({ type: "unknown" }), "Ana").title, "Ana changed a shared expense");
+});
+
+const allOn = { notify_expense_changes: true, notify_paid: true, notify_settled_up: true };
+
+Deno.test("expense changes share one switch", () => {
+  const device = { ...allOn, notify_expense_changes: false };
+  for (const type of ["created", "updated", "deleted"]) {
+    assertEquals(wantsNotification(device, type), false);
+  }
+  assertEquals(wantsNotification(device, "paid"), true);
+  assertEquals(wantsNotification(device, "settledUp"), true);
+});
+
+Deno.test("paid and settled up have their own switches", () => {
+  assertEquals(wantsNotification({ ...allOn, notify_paid: false }, "paid"), false);
+  assertEquals(wantsNotification({ ...allOn, notify_settled_up: false }, "settledUp"), false);
+  assertEquals(wantsNotification({ ...allOn, notify_paid: false }, "created"), true);
+});
+
+Deno.test("unknown types ignore the per-type switches", () => {
+  const allOff = { notify_expense_changes: false, notify_paid: false, notify_settled_up: false };
+  assertEquals(wantsNotification(allOff, "somethingNew"), true);
 });
