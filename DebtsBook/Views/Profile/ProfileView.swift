@@ -63,6 +63,7 @@ struct ProfileView: View {
                             Label("Notifications", systemImage: "bell")
                         }
                     }
+                    .accessibilityIdentifier("notificationSettingsLink")
                 } footer: {
                     Text("Get notified when a connected friend adds, edits, or settles a shared expense.")
                 }

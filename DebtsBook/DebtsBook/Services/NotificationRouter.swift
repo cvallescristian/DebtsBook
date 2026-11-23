@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// Where tapping a push notification takes you, built from the keys notify-activity adds to the payload.
-enum NotificationRoute: Equatable {
+nonisolated enum NotificationRoute: Equatable {
     case expense(remoteID: UUID)
     case friends
     case activity

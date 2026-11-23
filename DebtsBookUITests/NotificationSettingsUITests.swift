@@ -13,7 +13,7 @@ final class NotificationSettingsUITests: XCTestCase {
 
     func testProfileOpensNotificationSettings() {
         app.tabBars.buttons["Profile"].tap()
-        let link = app.buttons["Notifications"].firstMatch
+        let link = app.buttons["notificationSettingsLink"]
         XCTAssertTrue(link.waitForExistence(timeout: 15))
         link.tap()
 
