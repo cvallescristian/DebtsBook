@@ -11,7 +11,7 @@ struct BackupServiceTests {
     /// Fields included in a backup, per model.
     private static let backedUp: [String: Set<String>] = [
         "Friend": ["name", "createdAt", "photoData", "iconName"],
-        "ExpenseGroup": ["name", "createdAt"],
+        "ExpenseGroup": ["name", "createdAt", "iconName", "colorName"],
         "Budget": ["amount", "period", "group"],
         "Expense": ["title", "amount", "isSettled", "createdAt", "date", "friend", "group", "paidByMe", "splitType", "comment"],
         "Activity": ["type", "expenseTitle", "friendName", "amount", "paidByMe", "performedByMe", "date", "expense", "friend"],
@@ -80,6 +80,8 @@ struct BackupServiceTests {
 
         let food = ExpenseGroup(name: "Food")
         food.createdAt = date
+        food.iconName = "fork.knife"
+        food.colorName = "orange"
         context.insert(food)
 
         context.insert(Budget(amount: 200, period: .month, group: food))
@@ -108,6 +110,8 @@ struct BackupServiceTests {
         let group = try #require(try context.fetch(FetchDescriptor<ExpenseGroup>()).only)
         #expect(group.name == "Food")
         #expect(group.createdAt == date)
+        #expect(group.iconName == "fork.knife")
+        #expect(group.colorName == "orange")
 
         let budget = try #require(try context.fetch(FetchDescriptor<Budget>()).only)
         #expect(budget.amount == 200)

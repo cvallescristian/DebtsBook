@@ -16,6 +16,82 @@ enum BudgetPeriod: String, Codable, CaseIterable {
         }
         return calendar.dateInterval(of: component, for: date) ?? DateInterval(start: date, end: date)
     }
+
+    /// The period `offset` periods away from the one containing `date` (negative = earlier).
+    func dateInterval(offset: Int, from date: Date = Date()) -> DateInterval {
+        let component: Calendar.Component
+        switch self {
+        case .week: component = .weekOfYear
+        case .month: component = .month
+        case .year: component = .year
+        }
+        let shifted = Calendar.current.date(byAdding: component, value: offset, to: date) ?? date
+        return dateInterval(containing: shifted)
+    }
+
+    /// How many periods the period containing `date` is from the one containing `now` (negative = earlier).
+    func offset(of date: Date, from now: Date = Date()) -> Int {
+        let component: Calendar.Component
+        switch self {
+        case .week: component = .weekOfYear
+        case .month: component = .month
+        case .year: component = .year
+        }
+        let from = dateInterval(containing: now).start
+        let to = dateInterval(containing: date).start
+        return Calendar.current.dateComponents([component], from: from, to: to).value(for: component) ?? 0
+    }
+
+    /// How many periods the Reports history chart shows.
+    var historyLength: Int {
+        switch self {
+        case .week: return 5
+        case .month: return 6
+        case .year: return 5
+        }
+    }
+
+    func label(for interval: DateInterval) -> String {
+        switch self {
+        case .week:
+            let lastDay = interval.end.addingTimeInterval(-1)
+            return "\(interval.start.formatted(.dateTime.day().month(.abbreviated))) – \(lastDay.formatted(.dateTime.day().month(.abbreviated)))"
+        case .month:
+            return interval.start.formatted(.dateTime.month(.abbreviated).year())
+        case .year:
+            return interval.start.formatted(.dateTime.year())
+        }
+    }
+}
+
+struct PeriodSpending: Identifiable {
+    static let noGroupName = "No Group"
+
+    let offset: Int
+    let interval: DateInterval
+    let total: Decimal
+    /// Spending per group name in this period; expenses without a group fall under `noGroupName`.
+    let byGroup: [String: Decimal]
+    var id: Int { offset }
+}
+
+/// Personal spending totals for the `count` periods ending with the one at `endOffset`, oldest first.
+func personalSpendingHistory(
+    expenses: [Expense],
+    period: BudgetPeriod,
+    count: Int,
+    endOffset: Int = 0,
+    now: Date = Date()
+) -> [PeriodSpending] {
+    let offsets = (endOffset - count + 1)...endOffset
+    return offsets.map { offset in
+        let interval = period.dateInterval(offset: offset, from: now)
+        let inPeriod = expenses.filter { $0.isPersonal && interval.contains($0.date) }
+        let total = inPeriod.reduce(Decimal(0)) { $0 + $1.amount }
+        let byGroup = Dictionary(grouping: inPeriod) { $0.group?.name ?? PeriodSpending.noGroupName }
+            .mapValues { $0.reduce(Decimal(0)) { $0 + $1.amount } }
+        return PeriodSpending(offset: offset, interval: interval, total: total, byGroup: byGroup)
+    }
 }
 
 @Model

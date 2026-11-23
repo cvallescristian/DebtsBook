@@ -1,9 +1,19 @@
 import SwiftUI
 import SwiftData
 
+/// Edits every budget at once: the overall weekly/monthly/yearly limits and each group's,
+/// and lets groups be added, edited and deleted without leaving the screen.
+/// With `group` set, it shows only that group's limits.
 struct BudgetLimitsEditView: View {
 
-    let period: BudgetPeriod
+    var group: ExpenseGroup?
+    /// The period whose field gets focus on open.
+    var focusPeriod: BudgetPeriod?
+
+    private struct BudgetKey: Hashable {
+        let groupID: PersistentIdentifier?
+        let period: BudgetPeriod
+    }
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -11,85 +21,102 @@ struct BudgetLimitsEditView: View {
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
     @Query private var budgets: [Budget]
 
-    @State private var globalAmount: Decimal?
-    @State private var groupAmounts: [PersistentIdentifier: Decimal?] = [:]
-    @FocusState private var focusedField: PersistentIdentifier?
+    @State private var amounts: [BudgetKey: Decimal?] = [:]
+    @State private var showingNewGroup = false
+    @State private var editingGroup: ExpenseGroup?
+    @State private var deletingGroup: ExpenseGroup?
+    @FocusState private var focusedField: BudgetKey?
 
-    private var globalBudget: Budget? {
-        budgets.first { $0.period == period && $0.group == nil }
-    }
-
-    private func existingBudget(for group: ExpenseGroup) -> Budget? {
-        budgets.first { $0.period == period && $0.group?.persistentModelID == group.persistentModelID }
-    }
-
-    init(period: BudgetPeriod) {
-        self.period = period
+    private var visibleGroups: [ExpenseGroup] {
+        guard let group else { return groups }
+        return groups.filter { $0.persistentModelID == group.persistentModelID }
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Global \(period.rawValue)ly Limit") {
-                    HStack {
-                        TextField("Amount", value: $globalAmount, format: .currency(code: "NZD"))
-                            .keyboardType(.decimalPad)
+                if group == nil {
+                    Section {
+                        ForEach(BudgetPeriod.allCases, id: \.self) { period in
+                            amountRow(BudgetKey(groupID: nil, period: period))
+                        }
+                    } header: {
+                        Text("Overall Budget")
+                    } footer: {
+                        Text("Covers all personal expenses (\"Just Me\").")
+                    }
+                }
 
-                        if globalBudget != nil {
-                            Button(role: .destructive) {
-                                if let globalBudget {
-                                    DataStore.delete(globalBudget, from: modelContext)
-                                }
-                                globalAmount = nil
-                            } label: {
-                                Image(systemName: "trash")
-                                    .font(.caption)
+                ForEach(visibleGroups) { group in
+                    Section {
+                        Button {
+                            editingGroup = group
+                        } label: {
+                            HStack(spacing: 12) {
+                                GroupIcon(group: group)
+                                Text(group.name)
+                                    .font(.headline)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
                             }
-                            .buttonStyle(.bordered)
-                            .tint(.red)
+                        }
+                        .tint(.primary)
+                        .accessibilityHint("Edit name, icon and colour")
+                        .swipeActions {
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                deletingGroup = group
+                            }
+                        }
+
+                        ForEach(BudgetPeriod.allCases, id: \.self) { period in
+                            amountRow(BudgetKey(groupID: group.persistentModelID, period: period))
                         }
                     }
                 }
 
-                if !groups.isEmpty {
-                    Section("Group Limits") {
-                        ForEach(groups) { group in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(group.name)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                HStack {
-                                    TextField("No limit", value: groupBinding(for: group), format: .currency(code: "NZD"))
-                                        .keyboardType(.decimalPad)
-                                        .focused($focusedField, equals: group.persistentModelID)
-
-                                    if existingBudget(for: group) != nil {
-                                        Button(role: .destructive) {
-                                            if let budget = existingBudget(for: group) {
-                                                DataStore.delete(budget, from: modelContext)
-                                            }
-                                            groupAmounts[group.persistentModelID] = nil
-                                        } label: {
-                                            Image(systemName: "trash")
-                                                .font(.caption)
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .tint(.red)
-                                    }
-                                }
-                            }
+                if group == nil {
+                    Section {
+                        Button {
+                            showingNewGroup = true
+                        } label: {
+                            Label("Add Group", systemImage: "plus.circle.fill")
                         }
+                    } footer: {
+                        Text("Leave a limit empty for no limit.")
                     }
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("\(period.rawValue)ly Budgets")
+            .navigationTitle(group.map { "\($0.name) Budget" } ?? "Budgets")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                globalAmount = globalBudget?.amount
-                for group in groups {
-                    groupAmounts[group.persistentModelID] = existingBudget(for: group)?.amount
+                loadMissingAmounts()
+                if let focusPeriod {
+                    focusedField = BudgetKey(groupID: group?.persistentModelID, period: focusPeriod)
                 }
+            }
+            .onChange(of: groups.map(\.persistentModelID)) {
+                loadMissingAmounts()
+            }
+            .sheet(isPresented: $showingNewGroup) {
+                GroupNewView()
+            }
+            .sheet(item: $editingGroup) { group in
+                GroupEditView(group: group)
+            }
+            .confirmationDialog(
+                "Delete \(deletingGroup?.name ?? "Group")?",
+                isPresented: Binding(get: { deletingGroup != nil }, set: { if !$0 { deletingGroup = nil } }),
+                titleVisibility: .visible,
+                presenting: deletingGroup
+            ) { group in
+                Button("Delete Group", role: .destructive) {
+                    delete(group)
+                }
+            } message: { _ in
+                Text("Its budgets are removed. Its expenses are kept, without a group.")
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -112,32 +139,66 @@ struct BudgetLimitsEditView: View {
         }
     }
 
-    private func groupBinding(for group: ExpenseGroup) -> Binding<Decimal?> {
+    private func amountRow(_ key: BudgetKey) -> some View {
+        HStack {
+            Text("\(key.period.rawValue)ly")
+            Spacer()
+            TextField("No limit", value: binding(for: key), format: .currency(code: "NZD"))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .focused($focusedField, equals: key)
+        }
+    }
+
+    private func binding(for key: BudgetKey) -> Binding<Decimal?> {
         Binding(
-            get: { groupAmounts[group.persistentModelID] ?? nil },
-            set: { groupAmounts[group.persistentModelID] = $0 }
+            get: { amounts[key] ?? nil },
+            set: { amounts[key] = $0 }
         )
     }
 
-    private func save() {
-        if let globalAmount {
-            if let existing = globalBudget {
-                existing.amount = globalAmount
-            } else {
-                DataStore.insert(Budget(amount: globalAmount, period: period), into: modelContext)
-            }
-        }
+    private func existingBudget(for key: BudgetKey) -> Budget? {
+        budgets.first { $0.period == key.period && $0.group?.persistentModelID == key.groupID }
+    }
 
-        for group in groups {
-            let amount = groupAmounts[group.persistentModelID] ?? nil
-            let existing = existingBudget(for: group)
+    private var allKeys: [BudgetKey] {
+        var groupIDs: [PersistentIdentifier?] = visibleGroups.map(\.persistentModelID)
+        if group == nil {
+            groupIDs.insert(nil, at: 0)
+        }
+        return groupIDs.flatMap { id in BudgetPeriod.allCases.map { BudgetKey(groupID: id, period: $0) } }
+    }
+
+    /// Fills in amounts for keys not loaded yet (on open, and for groups added while open)
+    /// without overwriting anything already typed.
+    private func loadMissingAmounts() {
+        for key in allKeys where !amounts.keys.contains(key) {
+            amounts[key] = existingBudget(for: key)?.amount
+        }
+    }
+
+    private func delete(_ group: ExpenseGroup) {
+        for budget in budgets where budget.group?.persistentModelID == group.persistentModelID {
+            DataStore.delete(budget, from: modelContext)
+        }
+        amounts = amounts.filter { $0.key.groupID != group.persistentModelID }
+        DataStore.delete(group, from: modelContext)
+    }
+
+    private func save() {
+        for key in allKeys {
+            let amount = amounts[key] ?? nil
+            let existing = existingBudget(for: key)
 
             if let amount {
                 if let existing {
                     existing.amount = amount
                 } else {
-                    DataStore.insert(Budget(amount: amount, period: period, group: group), into: modelContext)
+                    let group = groups.first { $0.persistentModelID == key.groupID }
+                    DataStore.insert(Budget(amount: amount, period: key.period, group: group), into: modelContext)
                 }
+            } else if let existing {
+                DataStore.delete(existing, from: modelContext)
             }
         }
 
@@ -148,6 +209,6 @@ struct BudgetLimitsEditView: View {
 
 
 #Preview {
-    BudgetLimitsEditView(period: .week)
+    BudgetLimitsEditView()
         .modelContainer(PreviewSampleData.container)
 }

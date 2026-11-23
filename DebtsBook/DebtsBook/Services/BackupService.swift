@@ -13,6 +13,8 @@ private struct BackupGroup: Codable {
     let id: UUID
     let name: String
     let createdAt: Date
+    var iconName: String?
+    var colorName: String?
 }
 
 private struct BackupBudget: Codable {
@@ -77,7 +79,7 @@ enum BackupService {
             BackupFriend(id: friendIDs[ObjectIdentifier(friend)]!, name: friend.name, createdAt: friend.createdAt, photoData: friend.photoData, iconName: friend.iconName)
         }
         let backupGroups = groups.map { group in
-            BackupGroup(id: groupIDs[ObjectIdentifier(group)]!, name: group.name, createdAt: group.createdAt)
+            BackupGroup(id: groupIDs[ObjectIdentifier(group)]!, name: group.name, createdAt: group.createdAt, iconName: group.iconName, colorName: group.colorName)
         }
         let backupBudgets = budgets.map { budget in
             BackupBudget(
@@ -169,6 +171,8 @@ enum BackupService {
         for backupGroup in bundle.groups {
             let group = ExpenseGroup(name: backupGroup.name)
             group.createdAt = backupGroup.createdAt
+            group.iconName = backupGroup.iconName
+            group.colorName = backupGroup.colorName
             context.insert(group)
             groupsByID[backupGroup.id] = group
         }

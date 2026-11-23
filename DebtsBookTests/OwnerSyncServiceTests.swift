@@ -256,6 +256,29 @@ struct OwnerSyncServiceTests {
         #expect(try context.fetch(FetchDescriptor<SyncTombstone>()).isEmpty)
     }
 
+    @Test func groupIconAndColorRoundTrip() async throws {
+        let context = try makeContext()
+        let group = ExpenseGroup(name: "Food")
+        group.iconName = "fork.knife"
+        group.colorName = "orange"
+        context.insert(group)
+        try context.save()
+        let service = makeService(context)
+        try await service.sync()
+
+        let remoteID = try #require(group.remoteID)
+        #expect(backend.row("expense_groups", remoteID)?["icon_name"] as? String == "fork.knife")
+        #expect(backend.row("expense_groups", remoteID)?["color_name"] as? String == "orange")
+
+        let otherID = UUID()
+        backend.insertRemote("expense_groups", ["id": otherID.uuidString, "name": "Travel", "icon_name": "airplane", "color_name": "teal"])
+        try await service.pull()
+
+        let pulled = try #require(try context.fetch(FetchDescriptor<ExpenseGroup>()).first { $0.remoteID == otherID })
+        #expect(pulled.iconName == "airplane")
+        #expect(pulled.colorName == "teal")
+    }
+
     @Test func pullKeepsUnpushedLocalEdits() async throws {
         let context = try makeContext()
         let group = ExpenseGroup(name: "Food")

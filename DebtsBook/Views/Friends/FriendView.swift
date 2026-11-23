@@ -1,23 +1,15 @@
 import SwiftUI
 import SwiftData
 
-enum FriendTab: String, CaseIterable {
-    case friends = "Friends"
-    case groups = "Groups"
-}
-
 struct FriendView: View {
 
-    @State private var selectedTab: FriendTab = .friends
     @State private var showingFriendNew: Bool = false
-    @State private var showingGroupNew: Bool = false
     @State private var showingRedeemInvite: Bool = false
     @State private var showingSignInRequired: Bool = false
     var authService = AuthService.shared
     @Environment(\.modelContext) private var modelContext
     @Query private var friends: [Friend]
     @Query private var expenses: [Expense]
-    @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
 
     private func balance(for friend: Friend) -> Decimal {
         expenses
@@ -50,44 +42,24 @@ struct FriendView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
 
-                Picker("Tab", selection: $selectedTab) {
-                    ForEach(FriendTab.allCases, id: \.self) { tab in
-                        Text(tab.rawValue).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-
-                switch selectedTab {
-                case .friends:
-                    friendsList
-                case .groups:
-                    groupsList
-                }
+                friendsList
             }
-            .navigationTitle(selectedTab.rawValue)
+            .navigationTitle("Friends")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if selectedTab == .friends {
-                        Button {
-                            if authService.isSignedIn {
-                                showingRedeemInvite = true
-                            } else {
-                                showingSignInRequired = true
-                            }
-                        } label: {
-                            Image(systemName: "link.circle")
+                    Button {
+                        if authService.isSignedIn {
+                            showingRedeemInvite = true
+                        } else {
+                            showingSignInRequired = true
                         }
+                    } label: {
+                        Image(systemName: "link.circle")
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        if selectedTab == .friends {
-                            showingFriendNew = true
-                        } else {
-                            showingGroupNew = true
-                        }
+                        showingFriendNew = true
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -95,9 +67,6 @@ struct FriendView: View {
             }
             .sheet(isPresented: $showingFriendNew) {
                 FriendNewView()
-            }
-            .sheet(isPresented: $showingGroupNew) {
-                GroupNewView()
             }
             .sheet(isPresented: $showingRedeemInvite) {
                 RedeemInviteView()
@@ -136,32 +105,6 @@ struct FriendView: View {
         }
         .refreshable {
             await SyncCoordinator.syncAll(into: modelContext)
-        }
-    }
-
-    private var groupsList: some View {
-        List {
-            ForEach(groups) { group in
-                NavigationLink {
-                    GroupDetailView(group: group)
-                } label: {
-                    HStack {
-                        Text(group.name)
-                        SyncIcon(item: group)
-                            .font(.caption)
-                        Spacer()
-                        let total = expenses.filter { $0.group?.persistentModelID == group.persistentModelID }.reduce(0) { $0 + $1.amount }
-                        Text(total, format: .currency(code: "NZD"))
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-        .overlay {
-            if groups.isEmpty {
-                ContentUnavailableView("No Groups", systemImage: "folder", description: Text("Tap + to create your first group."))
-            }
         }
     }
 }
