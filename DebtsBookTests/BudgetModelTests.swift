@@ -100,4 +100,14 @@ struct BudgetModelTests {
         #expect(history.first?.byGroup == ["Food": 25, PeriodSpending.noGroupName: 10])
         #expect(history.first?.total == 35)
     }
+
+    @Test func offsetOfDateRoundTripsWithDateInterval() {
+        let now = Date()
+        for period in BudgetPeriod.allCases {
+            for offset in [0, -1, -7, -30] {
+                let date = period.dateInterval(offset: offset, from: now).start.addingTimeInterval(3600)
+                #expect(period.offset(of: date, from: now) == offset)
+            }
+        }
+    }
 }

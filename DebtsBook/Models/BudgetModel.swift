@@ -29,6 +29,19 @@ enum BudgetPeriod: String, Codable, CaseIterable {
         return dateInterval(containing: shifted)
     }
 
+    /// How many periods the period containing `date` is from the one containing `now` (negative = earlier).
+    func offset(of date: Date, from now: Date = Date()) -> Int {
+        let component: Calendar.Component
+        switch self {
+        case .week: component = .weekOfYear
+        case .month: component = .month
+        case .year: component = .year
+        }
+        let from = dateInterval(containing: now).start
+        let to = dateInterval(containing: date).start
+        return Calendar.current.dateComponents([component], from: from, to: to).value(for: component) ?? 0
+    }
+
     /// How many periods the Reports history chart shows.
     var historyLength: Int {
         switch self {

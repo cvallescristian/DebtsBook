@@ -10,6 +10,7 @@ struct ReportsView: View {
     @State private var showingBudgetEdit: Bool = false
     @State private var editingExpense: Expense?
     @State private var groupFilter: String?
+    @State private var showingPeriodPicker = false
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query private var budgets: [Budget]
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
@@ -185,6 +186,15 @@ struct ReportsView: View {
             .sheet(item: $editingExpense) { expense in
                 ExpenseEditView(expense: expense)
             }
+            .sheet(isPresented: $showingPeriodPicker) {
+                ReportsPeriodPicker(
+                    range: selectedRange,
+                    selected: selectedInterval,
+                    spendingDates: expenses.filter(\.isPersonal).map(\.date)
+                ) { date in
+                    periodOffset = selectedRange.offset(of: date)
+                }
+            }
         }
     }
 
@@ -295,15 +305,27 @@ struct ReportsView: View {
                 }
                 .disabled(!canGoBack)
 
-                VStack(spacing: 2) {
-                    Text(relativePeriodTitle)
-                        .font(.headline)
-                    Text(selectedRange.label(for: selectedInterval))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                Button {
+                    showingPeriodPicker = true
+                } label: {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(relativePeriodTitle)
+                                .font(.headline)
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(selectedRange.label(for: selectedInterval))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.plain)
                 .contentTransition(.numericText())
+                .accessibilityHint("Choose a \(selectedRange.rawValue.lowercased())")
 
                 periodArrow(systemImage: "chevron.right", label: "Next \(selectedRange.rawValue)") {
                     periodOffset += 1
