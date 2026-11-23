@@ -36,6 +36,33 @@ struct ExpenseModelTests {
         #expect(expense.signedAmount == -10)
     }
 
+    @Test func myShareFollowsTheSplit() {
+        let friend = Friend(name: "Ana")
+        let group = ExpenseGroup(name: "Eating out")
+        #expect(Expense(title: "Coffee", amount: 5).myShare == 5)
+        #expect(Expense(title: "Dinner", amount: 80, friend: friend, group: group, paidByMe: true, splitType: .equally).myShare == 40)
+        #expect(Expense(title: "Dinner", amount: 80, friend: friend, group: group, paidByMe: false, splitType: .equally).myShare == 40)
+        #expect(Expense(title: "Gift", amount: 80, friend: friend, group: group, paidByMe: true, splitType: .fullAmount).myShare == 0)
+        #expect(Expense(title: "Loan", amount: 80, friend: friend, group: group, paidByMe: false, splitType: .fullAmount).myShare == 80)
+    }
+
+    @Test func sharedExpenseCountsAsSpendingOnlyWithAGroup() {
+        let friend = Friend(name: "Ana")
+        let group = ExpenseGroup(name: "Eating out")
+        #expect(Expense(title: "Coffee", amount: 5).countsAsSpending)
+        #expect(!Expense(title: "Dinner", amount: 80, friend: friend).countsAsSpending)
+        #expect(Expense(title: "Dinner", amount: 80, friend: friend, group: group).countsAsSpending)
+        #expect(!Expense(title: "Gift", amount: 80, friend: friend, group: group, paidByMe: true, splitType: .fullAmount).countsAsSpending)
+    }
+
+    @Test func settlingUpDoesNotChangeMyShare() {
+        let friend = Friend(name: "Ana")
+        let expense = Expense(title: "Dinner", amount: 80, friend: friend, group: ExpenseGroup(name: "Eating out"), paidByMe: false)
+        expense.isSettled = true
+        #expect(expense.myShare == 40)
+        #expect(expense.countsAsSpending)
+    }
+
     @Test func netBalanceExcludesSettledExpenses() {
         let friend = Friend(name: "Ana")
         let unsettled = Expense(title: "Lunch", amount: 20, friend: friend, paidByMe: true)

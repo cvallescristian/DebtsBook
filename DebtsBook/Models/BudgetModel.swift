@@ -86,10 +86,10 @@ func personalSpendingHistory(
     let offsets = (endOffset - count + 1)...endOffset
     return offsets.map { offset in
         let interval = period.dateInterval(offset: offset, from: now)
-        let inPeriod = expenses.filter { $0.isPersonal && interval.contains($0.date) }
-        let total = inPeriod.reduce(Decimal(0)) { $0 + $1.amount }
+        let inPeriod = expenses.filter { $0.countsAsSpending && interval.contains($0.date) }
+        let total = inPeriod.reduce(Decimal(0)) { $0 + $1.myShare }
         let byGroup = Dictionary(grouping: inPeriod) { $0.group?.name ?? PeriodSpending.noGroupName }
-            .mapValues { $0.reduce(Decimal(0)) { $0 + $1.amount } }
+            .mapValues { $0.reduce(Decimal(0)) { $0 + $1.myShare } }
         return PeriodSpending(offset: offset, interval: interval, total: total, byGroup: byGroup)
     }
 }
@@ -111,8 +111,8 @@ class Budget {
     }
 }
 
-/// Warnings for any budget a personal expense (dated `date`, costing `amount`) would push over.
-/// Budgets only track personal spending, not expenses shared with friends.
+/// Warnings for any budget an expense (dated `date`, adding `amount` of your own spending) would push over.
+/// Budgets track personal expenses plus your share of grouped shared ones (see `Expense.countsAsSpending`).
 /// Pass `excluding` when editing an existing expense so it isn't double-counted against itself.
 func exceededBudgetWarnings(
     budgets: [Budget],
@@ -129,8 +129,8 @@ func exceededBudgetWarnings(
         if isGlobalBudget {
             let interval = budget.period.dateInterval(containing: date)
             let existingTotal = expenses
-                .filter { $0.persistentModelID != excludedExpenseID && $0.isPersonal && interval.contains($0.date) }
-                .reduce(Decimal(0)) { $0 + $1.amount }
+                .filter { $0.persistentModelID != excludedExpenseID && $0.countsAsSpending && interval.contains($0.date) }
+                .reduce(Decimal(0)) { $0 + $1.myShare }
             let newTotal = existingTotal + amount
             guard newTotal > budget.amount else { return nil }
             let over = newTotal - budget.amount
@@ -138,8 +138,8 @@ func exceededBudgetWarnings(
         } else if matchesGroup, let budgetGroup = budget.group {
             let interval = budget.period.dateInterval(containing: date)
             let existingTotal = expenses
-                .filter { $0.persistentModelID != excludedExpenseID && $0.group?.persistentModelID == budgetGroup.persistentModelID && interval.contains($0.date) }
-                .reduce(Decimal(0)) { $0 + $1.amount }
+                .filter { $0.persistentModelID != excludedExpenseID && $0.countsAsSpending && $0.group?.persistentModelID == budgetGroup.persistentModelID && interval.contains($0.date) }
+                .reduce(Decimal(0)) { $0 + $1.myShare }
             let newTotal = existingTotal + amount
             guard newTotal > budget.amount else { return nil }
             let over = newTotal - budget.amount

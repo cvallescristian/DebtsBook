@@ -45,6 +45,15 @@ struct BudgetModelTests {
         #expect(warnings.isEmpty)
     }
 
+    @Test func groupedSharedExpenseCountsMyShareTowardBudgets() {
+        let food = ExpenseGroup(name: "Food")
+        let budget = Budget(amount: 50, period: .week, group: food)
+        let shared = Expense(title: "Dinner", amount: 80, friend: Friend(name: "Ana"), group: food, paidByMe: true, date: Date())
+        let warnings = exceededBudgetWarnings(budgets: [budget], expenses: [shared], amount: 15, date: Date(), groupID: food.persistentModelID)
+        #expect(warnings.count == 1)
+        #expect(warnings.first?.contains("Food budget") == true)
+    }
+
     @Test func groupBudgetOnlyCountsMatchingGroup() {
         let food = ExpenseGroup(name: "Food")
         let transport = ExpenseGroup(name: "Transport")
@@ -99,6 +108,17 @@ struct BudgetModelTests {
 
         #expect(history.first?.byGroup == ["Food": 25, PeriodSpending.noGroupName: 10])
         #expect(history.first?.total == 35)
+    }
+
+    @Test func spendingHistoryCountsMyShareOfGroupedSharedExpenses() {
+        let now = Date()
+        let food = ExpenseGroup(name: "Food")
+        let friend = Friend(name: "Ana")
+        let grouped = Expense(title: "Dinner", amount: 80, friend: friend, group: food, date: now)
+        let ungrouped = Expense(title: "Taxi", amount: 30, friend: friend, date: now)
+        let history = personalSpendingHistory(expenses: [grouped, ungrouped], period: .week, count: 1, now: now)
+        #expect(history.first?.total == 40)
+        #expect(history.first?.byGroup["Food"] == 40)
     }
 
     @Test func offsetOfDateRoundTripsWithDateInterval() {

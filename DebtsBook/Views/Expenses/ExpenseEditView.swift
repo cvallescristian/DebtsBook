@@ -51,8 +51,22 @@ struct ExpenseEditView: View {
     }
 
     private var budgetWarnings: [String] {
-        guard let amount, isPersonal else { return [] }
-        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: amount, date: date, groupID: groupID, excluding: expense.persistentModelID)
+        guard let spendingAmount else { return [] }
+        return exceededBudgetWarnings(budgets: budgets, expenses: expenses, amount: spendingAmount, date: date, groupID: groupID, excluding: expense.persistentModelID)
+    }
+
+    private var sharedShare: Decimal {
+        Expense.myShare(of: amount ?? 0, splitType: splitType, paidByMe: paidByMe)
+    }
+
+    /// What this expense would add to Reports and budgets, or nil if it doesn't count there.
+    private var spendingAmount: Decimal? {
+        guard let amount else { return nil }
+        if isPersonal {
+            return amount
+        }
+        guard groupID != nil, sharedShare > 0 else { return nil }
+        return sharedShare
     }
 
     var body: some View {
@@ -77,15 +91,7 @@ struct ExpenseEditView: View {
                     .labelsHidden()
                 }
                 if isPersonal && !groups.isEmpty {
-                    Section("Group") {
-                        Picker("Group", selection: $groupID) {
-                            Text("None").tag(nil as PersistentIdentifier?)
-                            ForEach(groups) { group in
-                                Text(group.name)
-                                    .tag(group.persistentModelID as PersistentIdentifier?)
-                            }
-                        }
-                    }
+                    ExpenseGroupSection(groups: groups, groupID: $groupID, sharedShare: nil)
                 }
                 if !isPersonal {
                     Section("Who?") {
@@ -105,6 +111,9 @@ struct ExpenseEditView: View {
                                 paidByMe: $paidByMe,
                                 splitType: $splitType
                             )
+                        }
+                        if !groups.isEmpty {
+                            ExpenseGroupSection(groups: groups, groupID: $groupID, sharedShare: sharedShare)
                         }
                     }
                 }
@@ -183,7 +192,7 @@ struct ExpenseEditView: View {
         expense.amount = amount
         expense.date = date
         expense.friend = newFriend
-        expense.group = isPersonal ? selectedGroup : nil
+        expense.group = selectedGroup
         expense.paidByMe = paidByMe
         expense.splitType = splitType
         expense.comment = trimmedComment.isEmpty ? nil : trimmedComment
