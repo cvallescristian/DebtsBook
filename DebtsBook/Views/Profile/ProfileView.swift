@@ -54,20 +54,15 @@ struct ProfileView: View {
                     .labelsHidden()
                 }
                 Section {
-                    Toggle("Friend Changes", isOn: $notifyFriendChanges)
-                        .onChange(of: notifyFriendChanges) { _, isOn in
-                            guard isOn else {
-                                Task { await NotificationService.shared.disable() }
-                                return
-                            }
-                            Task {
-                                if await !NotificationService.shared.enable() {
-                                    notifyFriendChanges = false
-                                }
-                            }
+                    NavigationLink {
+                        NotificationSettingsView()
+                    } label: {
+                        LabeledContent {
+                            Text(notifyFriendChanges ? "On" : "Off")
+                        } label: {
+                            Label("Notifications", systemImage: "bell")
                         }
-                } header: {
-                    Text("Notifications")
+                    }
                 } footer: {
                     Text("Get notified when a connected friend adds, edits, or settles a shared expense.")
                 }

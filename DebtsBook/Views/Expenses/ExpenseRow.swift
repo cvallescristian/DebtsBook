@@ -67,7 +67,7 @@ extension View {
 
 /// Toggles `isSettled` and keeps the Activity log in sync: marking paid logs a `.paid` entry,
 /// marking unpaid again removes that same entry instead of logging a separate "unpaid" event.
-private func toggleSettled(for expense: Expense, in modelContext: ModelContext) {
+func toggleSettled(for expense: Expense, in modelContext: ModelContext) {
     let isConnected = expense.friend?.linkedUserID != nil
     if expense.isSettled {
         expense.isSettled = false
