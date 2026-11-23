@@ -8,7 +8,7 @@ struct ReportsView: View {
     @State private var periodOffset: Int = 0
     @State private var selectedBarLabel: String?
     @State private var showingBudgetEdit: Bool = false
-    @State private var editingExpense: Expense?
+    @State private var viewingExpense: Expense?
     @State private var groupFilter: String?
     @State private var limitEditingGroup: ExpenseGroup?
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
@@ -177,8 +177,8 @@ struct ReportsView: View {
             .sheet(isPresented: $showingBudgetEdit) {
                 BudgetLimitsEditView()
             }
-            .sheet(item: $editingExpense) { expense in
-                ExpenseEditView(expense: expense)
+            .sheet(item: $viewingExpense) { expense in
+                ExpenseDetailView(expense: expense)
             }
             .sheet(item: $limitEditingGroup) { group in
                 BudgetLimitsEditView(group: group, focusPeriod: selectedRange)
@@ -240,7 +240,7 @@ struct ReportsView: View {
             } else {
                 ForEach(filteredExpenses.prefix(Self.previewCount)) { expense in
                     Button {
-                        editingExpense = expense
+                        viewingExpense = expense
                     } label: {
                         ExpenseRow(expense: expense)
                     }
@@ -448,12 +448,12 @@ struct ReportsView: View {
 private struct ReportsExpenseListView: View {
     let title: String
     let expenses: [Expense]
-    @State private var editingExpense: Expense?
+    @State private var viewingExpense: Expense?
 
     var body: some View {
         List(expenses) { expense in
             Button {
-                editingExpense = expense
+                viewingExpense = expense
             } label: {
                 ExpenseRow(expense: expense)
             }
@@ -461,8 +461,8 @@ private struct ReportsExpenseListView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $editingExpense) { expense in
-            ExpenseEditView(expense: expense)
+        .sheet(item: $viewingExpense) { expense in
+            ExpenseDetailView(expense: expense)
         }
     }
 }

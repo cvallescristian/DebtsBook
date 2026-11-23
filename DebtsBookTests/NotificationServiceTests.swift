@@ -13,4 +13,12 @@ struct NotificationServiceTests {
         let token = Data(repeating: 0x7e, count: 32)
         #expect(NotificationService.hexString(from: token).count == 64)
     }
+
+    @Test func preferenceSwitchesDefaultToOn() {
+        let defaults = UserDefaults(suiteName: "NotificationServiceTests")!
+        defaults.removePersistentDomain(forName: "NotificationServiceTests")
+        #expect(NotificationService.isEnabled(NotificationService.paidKey, in: defaults))
+        defaults.set(false, forKey: NotificationService.paidKey)
+        #expect(!NotificationService.isEnabled(NotificationService.paidKey, in: defaults))
+    }
 }

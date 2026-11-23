@@ -6,7 +6,7 @@ struct FriendDetailView: View {
     let friend: Friend
     @State private var showingFriendEdit: Bool = false
     @State private var showingExpenseNew: Bool = false
-    @State private var editingExpense: Expense?
+    @State private var viewingExpense: Expense?
     @State private var showingSettleUpConfirmation: Bool = false
     @State private var showingInviteFriend: Bool = false
     @State private var showingDisconnectConfirmation: Bool = false
@@ -149,7 +149,7 @@ struct FriendDetailView: View {
                     } else {
                         ForEach(expensesInPeriod.prefix(Self.previewCount)) { expense in
                             Button {
-                                editingExpense = expense
+                                viewingExpense = expense
                             } label: {
                                 ExpenseRow(expense: expense)
                             }
@@ -242,8 +242,8 @@ struct FriendDetailView: View {
         .sheet(isPresented: $showingExpenseNew) {
             ExpenseNewView(friend: friend)
         }
-        .sheet(item: $editingExpense) { expense in
-            ExpenseEditView(expense: expense)
+        .sheet(item: $viewingExpense) { expense in
+            ExpenseDetailView(expense: expense)
         }
         .sheet(isPresented: $showingInviteFriend) {
             InviteFriendView(friend: friend)
