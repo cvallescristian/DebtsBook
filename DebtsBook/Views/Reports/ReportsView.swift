@@ -11,6 +11,7 @@ struct ReportsView: View {
     @State private var editingExpense: Expense?
     @State private var groupFilter: String?
     @State private var showingPeriodPicker = false
+    @State private var limitEditingGroup: ExpenseGroup?
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query private var budgets: [Budget]
     @Query(sort: \ExpenseGroup.name) private var groups: [ExpenseGroup]
@@ -186,6 +187,9 @@ struct ReportsView: View {
             .sheet(item: $editingExpense) { expense in
                 ExpenseEditView(expense: expense)
             }
+            .sheet(item: $limitEditingGroup) { group in
+                BudgetLimitsEditView(group: group, focusPeriod: selectedRange)
+            }
             .sheet(isPresented: $showingPeriodPicker) {
                 ReportsPeriodPicker(
                     range: selectedRange,
@@ -228,11 +232,10 @@ struct ReportsView: View {
                 Button {
                     showingBudgetEdit = true
                 } label: {
-                    Label("Set \(selectedRange.rawValue)ly Budget", systemImage: "target")
-                        .frame(maxWidth: .infinity)
+                    Text("Set \(selectedRange.rawValue)ly Budget")
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .frame(maxWidth: .infinity)
             }
 
             if !history.allSatisfy({ $0.total == 0 }) {
@@ -511,7 +514,7 @@ struct ReportsView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button("Set Limit") {
-                        showingBudgetEdit = true
+                        limitEditingGroup = group
                     }
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)

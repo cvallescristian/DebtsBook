@@ -3,7 +3,12 @@ import SwiftData
 
 /// Edits every budget at once: the overall weekly/monthly/yearly limits and each group's,
 /// and lets groups be added, edited and deleted without leaving the screen.
+/// With `group` set, it shows only that group's limits.
 struct BudgetLimitsEditView: View {
+
+    var group: ExpenseGroup?
+    /// The period whose field gets focus on open.
+    var focusPeriod: BudgetPeriod?
 
     private struct BudgetKey: Hashable {
         let groupID: PersistentIdentifier?
@@ -22,20 +27,27 @@ struct BudgetLimitsEditView: View {
     @State private var deletingGroup: ExpenseGroup?
     @FocusState private var focusedField: BudgetKey?
 
+    private var visibleGroups: [ExpenseGroup] {
+        guard let group else { return groups }
+        return groups.filter { $0.persistentModelID == group.persistentModelID }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    ForEach(BudgetPeriod.allCases, id: \.self) { period in
-                        amountRow(BudgetKey(groupID: nil, period: period))
+                if group == nil {
+                    Section {
+                        ForEach(BudgetPeriod.allCases, id: \.self) { period in
+                            amountRow(BudgetKey(groupID: nil, period: period))
+                        }
+                    } header: {
+                        Text("Overall Budget")
+                    } footer: {
+                        Text("Covers all personal expenses (\"Just Me\").")
                     }
-                } header: {
-                    Text("Overall Budget")
-                } footer: {
-                    Text("Covers all personal expenses (\"Just Me\").")
                 }
 
-                ForEach(groups) { group in
+                ForEach(visibleGroups) { group in
                     Section {
                         Button {
                             editingGroup = group
@@ -64,21 +76,26 @@ struct BudgetLimitsEditView: View {
                     }
                 }
 
-                Section {
-                    Button {
-                        showingNewGroup = true
-                    } label: {
-                        Label("Add Group", systemImage: "plus.circle.fill")
+                if group == nil {
+                    Section {
+                        Button {
+                            showingNewGroup = true
+                        } label: {
+                            Label("Add Group", systemImage: "plus.circle.fill")
+                        }
+                    } footer: {
+                        Text("Leave a limit empty for no limit.")
                     }
-                } footer: {
-                    Text("Leave a limit empty for no limit.")
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Budgets")
+            .navigationTitle(group.map { "\($0.name) Budget" } ?? "Budgets")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 loadMissingAmounts()
+                if let focusPeriod {
+                    focusedField = BudgetKey(groupID: group?.persistentModelID, period: focusPeriod)
+                }
             }
             .onChange(of: groups.map(\.persistentModelID)) {
                 loadMissingAmounts()
@@ -145,7 +162,10 @@ struct BudgetLimitsEditView: View {
     }
 
     private var allKeys: [BudgetKey] {
-        let groupIDs: [PersistentIdentifier?] = [nil] + groups.map(\.persistentModelID)
+        var groupIDs: [PersistentIdentifier?] = visibleGroups.map(\.persistentModelID)
+        if group == nil {
+            groupIDs.insert(nil, at: 0)
+        }
         return groupIDs.flatMap { id in BudgetPeriod.allCases.map { BudgetKey(groupID: id, period: $0) } }
     }
 
